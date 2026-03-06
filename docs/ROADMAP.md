@@ -6,7 +6,7 @@ It is intentionally narrow. The aim is to solve one clear problem well before ex
 
 This roadmap is directional rather than fixed. It may change as simulator and device testing reveal platform constraints, device-specific behaviour, or better ways to keep v1 focused.
 
-The initial repository foundation is already in place. The repository now also contains an initial phase-1 Data Field scaffold and timing engine, so the remaining phase-1 work is validation and iteration rather than starting from zero.
+The initial repository foundation is already in place. Phase 1 has now been validated in the simulator and on an Epix Pro (Gen 2, 47mm). The repository also contains an initial phase-2 lap-tracking implementation, so the active work has moved on to validating lap behaviour and then improving the UI.
 
 ## Guiding Principles
 
@@ -41,28 +41,28 @@ This phase should not try to solve UI polish, configuration, or broad device sup
 * totals behave correctly on at least one real watch
 * no obvious drift or double-counting across repeated pause and resume cycles
 
-## Phase 2: Segment Tracking
+## Phase 2: Lap Tracking
 
 ### Objective
 
-Support rep-like usage by tracking moving and paused time within the current segment.
+Support rep-like usage by tracking moving and paused time within the current lap.
 
 ### Deliverables
 
-* segment moving time
-* segment paused time
-* segment reset model defined
-* lap-based segment reset implemented or approximated cleanly
-* repeated pause and resume within a segment handled correctly
+* lap moving time
+* lap paused time
+* lap reset model defined
+* manual-lap reset implemented cleanly
+* repeated pause and resume within a lap handled correctly
 
 ### Notes
 
-The first segment model should stay simple: activity start and manual laps.
+The first lap model should stay simple: activity start and manual laps.
 
 ### Exit Criteria
 
 * runners can use the field for improvised intervals or hill reps without confusion
-* segment totals remain trustworthy across several segments in one run
+* lap totals remain trustworthy across several laps in one run
 
 ## Phase 3: Usable UI
 
@@ -85,7 +85,7 @@ Prioritise the paused state. That is where the runner most needs help.
 ### Exit Criteria
 
 * while paused, the runner can instantly see how long recovery has lasted
-* while moving, the runner can understand current segment and total breakdowns without effort
+* while moving, the runner can understand current lap and total breakdowns without effort
 * layouts remain legible on the chosen launch devices
 
 ## Phase 4: Recovery Targets
@@ -232,7 +232,7 @@ A strong early outcome would look like this:
 * runners can use the field in unstructured sessions without reaching for a phone
 * current recovery duration is obvious while paused
 * moving and paused totals feel trustworthy
-* segment tracking is good enough for improvised reps
+* lap tracking is good enough for improvised reps
 * early testers describe the field as simple and useful rather than clever and fiddly
 
 ## Suggested Issue Buckets
@@ -240,7 +240,7 @@ A strong early outcome would look like this:
 To keep the roadmap actionable, issues can be grouped under:
 
 * timing engine
-* segment tracking
+* lap tracking
 * UI and layout
 * recovery targets
 * device compatibility
@@ -252,7 +252,7 @@ To keep the roadmap actionable, issues can be grouped under:
 A sensible cadence would be:
 
 * core scaffold and timing engine
-* segment tracking
+* lap tracking
 * maintainer prototype
 * maintainer field testing
 * small beta
