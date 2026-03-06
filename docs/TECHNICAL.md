@@ -37,8 +37,8 @@ The initial runtime state should stay small and explicit. A reasonable proposed 
 * the timestamp at which the current pause started
 * total moving milliseconds
 * total paused milliseconds
-* current-segment moving milliseconds
-* current-segment paused milliseconds
+* current-lap moving milliseconds
+* current-lap paused milliseconds
 * current pause duration
 * configured target pause duration
 * whether the target alert has already fired for the current pause
@@ -59,27 +59,27 @@ Preferred approach:
 
 This approach should be more robust across device differences and callback timing quirks than a callback-only model.
 
-## 6. Segment Model
+## 6. Lap Model
 
-The planned v1 segment model is intentionally simple and lap-like.
+The planned v1 lap model is intentionally simple.
 
-A segment should begin:
+A lap should begin:
 
 * at activity start
 * when the user manually creates a new lap
 
-Within the active segment, MovePause should track:
+Within the active lap, MovePause should track:
 
-* segment moving time
-* segment paused time
+* lap moving time
+* lap paused time
 
 This is enough to support improvised reps, hill sessions, and recovery timing without attempting automatic interval detection.
 
 Edge cases that should be verified during implementation:
 
 * lap pressed while already paused
-* repeated pause and resume cycles within one segment
-* Auto Pause transitions inside a segment
+* repeated pause and resume cycles within one lap
+* Auto Pause transitions inside a lap
 
 ## 7. UX Priorities
 
@@ -87,8 +87,8 @@ Edge cases that should be verified during implementation:
 
 The moving state should prioritise work-oriented information:
 
-* current-segment moving time
-* current-segment paused time
+* current-lap moving time
+* current-lap paused time
 * total moving time
 * total paused time
 
@@ -98,7 +98,7 @@ The paused state should prioritise recovery-oriented information:
 
 * current pause duration in the largest treatment
 * optional time remaining to a configured target
-* current-segment paused time
+* current-lap paused time
 * total paused time
 
 ### Design Principles
@@ -162,8 +162,8 @@ The planned implementation order is:
 
 ### Phase 2
 
-* add current-segment moving and paused counters
-* support lap-based segment resets
+* add current-lap moving and paused counters
+* support lap-based resets
 
 ### Phase 3
 
@@ -187,7 +187,7 @@ The repository currently contains:
 
 * a Connect IQ Data Field scaffold for `epix2pro47mm`
 * validated phase-1 timing logic for total moving and paused accumulation
-* initial phase-2 segment moving and paused counters with lap-based resets
+* initial phase-2 lap moving and paused counters with lap-based resets
 * resources, manifest, and jungle files for the app project
 * public documentation describing the project and its direction
 * contribution guidance and issue templates
@@ -216,9 +216,9 @@ That structure is planned, not current.
 These questions remain open and should be resolved through a mix of implementation, simulator work, and real device testing:
 
 * which Garmin devices should be supported first
-* whether segment resets should later expand beyond manual laps
+* whether the app should later support reset modes beyond manual laps
 * whether very short pauses should count by default
-* whether the moving view should emphasise segment totals or run totals
+* whether the moving view should emphasise lap totals or run totals
 * whether the paused view should show elapsed time only, or elapsed plus remaining time by default
 * how much configurability is useful before the field becomes cluttered
 

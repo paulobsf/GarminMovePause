@@ -5,13 +5,13 @@ import Toybox.WatchUi;
 
 class MovePauseField extends WatchUi.DataField {
     private const LAYOUT_FULL = 2;
-    private const LAYOUT_SEGMENT_WITH_TOTAL_PAUSE = 1;
-    private const LAYOUT_SEGMENT_ONLY = 0;
+    private const LAYOUT_LAP_WITH_TOTAL_PAUSE = 1;
+    private const LAYOUT_LAP_ONLY = 0;
     private const LINE_SPACING = 4;
 
     private var _compact as Boolean = false;
     private var _engine as MovePauseTimingEngine;
-    private var _layoutMode as Number = LAYOUT_SEGMENT_ONLY;
+    private var _layoutMode as Number = LAYOUT_LAP_ONLY;
     private var _stateFont as Graphics.FontType = Graphics.FONT_TINY;
     private var _stateY as Number = 0;
     private var _valueYs as Array<Number> = [];
@@ -34,9 +34,9 @@ class MovePauseField extends WatchUi.DataField {
         } else if (canFit(height, Graphics.FONT_XTINY, Graphics.FONT_TINY, 4) && (width >= 110)) {
             configureLayout(height, LAYOUT_FULL, Graphics.FONT_XTINY, Graphics.FONT_TINY, 4);
         } else if (canFit(height, Graphics.FONT_XTINY, Graphics.FONT_TINY, 3)) {
-            configureLayout(height, LAYOUT_SEGMENT_WITH_TOTAL_PAUSE, Graphics.FONT_XTINY, Graphics.FONT_TINY, 3);
+            configureLayout(height, LAYOUT_LAP_WITH_TOTAL_PAUSE, Graphics.FONT_XTINY, Graphics.FONT_TINY, 3);
         } else {
-            configureLayout(height, LAYOUT_SEGMENT_ONLY, Graphics.FONT_XTINY, Graphics.FONT_TINY, 2);
+            configureLayout(height, LAYOUT_LAP_ONLY, Graphics.FONT_XTINY, Graphics.FONT_TINY, 2);
         }
     }
 
@@ -82,16 +82,16 @@ class MovePauseField extends WatchUi.DataField {
 
         var centerX = dc.getWidth() / 2;
         var stateText = MovePauseFormatter.formatStateLabel(_engine.hasStarted(), _engine.isMoving(), _engine.isPaused());
-        var segmentMovingText = (_compact ? "SM " : "Seg M ") + MovePauseFormatter.formatDuration(_engine.getSegmentMovingMs());
-        var segmentPausedText = (_compact ? "SP " : "Seg P ") + MovePauseFormatter.formatDuration(_engine.getSegmentPausedMs());
-        var valueLines = [segmentMovingText, segmentPausedText];
+        var lapMovingText = (_compact ? "LM " : "Lap M ") + MovePauseFormatter.formatDuration(_engine.getLapMovingMs());
+        var lapPausedText = (_compact ? "LP " : "Lap P ") + MovePauseFormatter.formatDuration(_engine.getLapPausedMs());
+        var valueLines = [lapMovingText, lapPausedText];
 
         dc.drawText(centerX, _stateY, _stateFont, stateText, Graphics.TEXT_JUSTIFY_CENTER);
 
         if (_layoutMode == LAYOUT_FULL) {
             valueLines.add((_compact ? "TM " : "Tot M ") + MovePauseFormatter.formatDuration(_engine.getTotalMovingMs()));
             valueLines.add((_compact ? "TP " : "Tot P ") + MovePauseFormatter.formatDuration(_engine.getTotalPausedMs()));
-        } else if (_layoutMode == LAYOUT_SEGMENT_WITH_TOTAL_PAUSE) {
+        } else if (_layoutMode == LAYOUT_LAP_WITH_TOTAL_PAUSE) {
             valueLines.add((_compact ? "TP " : "Tot P ") + MovePauseFormatter.formatDuration(_engine.getTotalPausedMs()));
         }
 
