@@ -22,6 +22,7 @@ out/
 *.prg
 *.prg.debug.xml
 *.barrel
+*-settings.json
 gen/
 internal-mir/
 mir/

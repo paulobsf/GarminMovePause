@@ -2,7 +2,7 @@
 
 ## Project Stage
 
-MovePause is now in active early implementation. The first Connect IQ project scaffold and phase-1 timing logic are committed, but simulator verification and real-watch validation are still ongoing.
+MovePause is now in active early implementation. The Connect IQ project scaffold and core timer-state handling are committed, and the current work is focused on validating the move/pause period model, recovery targets, and compact UI in real use.
 
 Useful contributions at this stage include:
 
@@ -25,7 +25,7 @@ Please include as much of the following as you can:
 * firmware version
 * activity type
 * whether Auto Pause was enabled
-* any lap, timer, or screen settings that might matter
+* any timer, pause, or screen settings that might matter
 * clear reproduction steps
 * expected behaviour
 * actual behaviour
@@ -53,6 +53,6 @@ Try to keep unrelated documentation, scope, and implementation changes in separa
 
 ## Evolving Implementation Conventions
 
-The first code scaffold is now committed, but implementation conventions may still evolve while the early phases are validated on real hardware.
+The first code scaffold is now committed, but implementation conventions may still evolve while the early move/pause model is validated on real hardware.
 
-If you want to contribute code at this stage, prefer discussing the change first so file layout, naming, and tooling assumptions do not drift while phase 1 is still settling.
+If you want to contribute code at this stage, prefer discussing the change first so file layout, naming, and tooling assumptions do not drift while the early architecture is still settling.

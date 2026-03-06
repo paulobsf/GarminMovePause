@@ -3,30 +3,26 @@ import Toybox.Lang;
 import Toybox.System;
 
 class MovePauseTimingEngine {
-    private const DRIFT_CORRECTION_THRESHOLD_MS = 1250;
-
+    private var _currentMoveMs as Number = 0;
     private var _currentPauseMs as Number = 0;
     private var _hasStarted as Boolean = false;
-    private var _lapMovingMs as Number = 0;
-    private var _lapPausedMs as Number = 0;
     private var _lastTickMs as Number?;
+    private var _previousMoveMs as Number = 0;
+    private var _targetAlertFiredForPause as Boolean = false;
     private var _timerState as Number = Activity.TIMER_STATE_OFF;
-    private var _totalMovingMs as Number = 0;
-    private var _totalPausedMs as Number = 0;
 
     function initialize() {
         reset();
     }
 
     function reset() as Void {
+        _currentMoveMs = 0;
         _currentPauseMs = 0;
         _hasStarted = false;
-        _lapMovingMs = 0;
-        _lapPausedMs = 0;
         _lastTickMs = null;
+        _previousMoveMs = 0;
+        _targetAlertFiredForPause = false;
         _timerState = Activity.TIMER_STATE_OFF;
-        _totalMovingMs = 0;
-        _totalPausedMs = 0;
         MovePauseLogger.debug("Timing engine reset.");
     }
 
@@ -38,23 +34,27 @@ class MovePauseTimingEngine {
             return;
         }
 
+        var observedState = getObservedState(info);
         var expectedMoving = getExpectedMovingMs(info);
         var expectedPaused = getExpectedPausedMs(info);
 
-        _totalMovingMs = expectedMoving;
-        _totalPausedMs = expectedPaused;
-        _lapMovingMs = expectedMoving;
-        _lapPausedMs = expectedPaused;
-        _timerState = getObservedState(info);
-        _hasStarted = didActivityStart(info, expectedMoving, expectedPaused);
+        _currentMoveMs = 0;
+        _currentPauseMs = 0;
+        _previousMoveMs = 0;
+        _targetAlertFiredForPause = false;
+        _timerState = observedState;
+        _hasStarted = didActivityStart(observedState, expectedMoving, expectedPaused);
 
         if (!_hasStarted) {
-            _lapMovingMs = 0;
-            _lapPausedMs = 0;
             _timerState = Activity.TIMER_STATE_OFF;
-            _currentPauseMs = 0;
-        } else if (!isPausedLike(_timerState)) {
-            _currentPauseMs = 0;
+            return;
+        }
+
+        // Best-effort seeding only when move/pause boundaries are unambiguous.
+        if ((observedState == Activity.TIMER_STATE_ON) && (expectedPaused <= 0)) {
+            _currentMoveMs = expectedMoving;
+        } else if (isPausedLike(observedState) && (expectedMoving > 0)) {
+            _previousMoveMs = expectedMoving;
         }
     }
 
@@ -67,26 +67,15 @@ class MovePauseTimingEngine {
         var now = System.getTimer();
         accumulateDelta(now);
         _lastTickMs = now;
-
         applyState(getObservedState(info), "compute");
-        reconcile(info);
+    }
+
+    function handleTimerLap() as Void {
+        MovePauseLogger.debug("Ignored onTimerLap; field tracks move/pause periods only.");
     }
 
     function handleTimerPause() as Void {
         handleTimerEvent(Activity.TIMER_STATE_PAUSED, "onTimerPause");
-    }
-
-    function handleTimerLap() as Void {
-        var now = System.getTimer();
-
-        if (_lastTickMs == null) {
-            _lastTickMs = now;
-        }
-
-        accumulateDelta(now);
-        _lastTickMs = now;
-        resetLapTotals();
-        MovePauseLogger.debug("Lap reset via onTimerLap.");
     }
 
     function handleTimerReset() as Void {
@@ -105,24 +94,33 @@ class MovePauseTimingEngine {
         handleTimerEvent(Activity.TIMER_STATE_STOPPED, "onTimerStop");
     }
 
+    function getCurrentMoveMs() as Number {
+        return _currentMoveMs;
+    }
+
     function getCurrentPauseMs() as Number {
         return _currentPauseMs;
     }
 
-    function getLapMovingMs() as Number {
-        return _lapMovingMs;
+    function getPreviousMoveMs() as Number {
+        return _previousMoveMs;
     }
 
-    function getLapPausedMs() as Number {
-        return _lapPausedMs;
+    function getRemainingRecoveryMs(targetMs as Number) as Number {
+        if (targetMs <= 0) {
+            return 0;
+        }
+
+        var remainingMs = targetMs - _currentPauseMs;
+        if (remainingMs < 0) {
+            return 0;
+        }
+
+        return remainingMs;
     }
 
-    function getTotalMovingMs() as Number {
-        return _totalMovingMs;
-    }
-
-    function getTotalPausedMs() as Number {
-        return _totalPausedMs;
+    function hasPreviousMove() as Boolean {
+        return _previousMoveMs > 0;
     }
 
     function hasStarted() as Boolean {
@@ -135,6 +133,19 @@ class MovePauseTimingEngine {
 
     function isPaused() as Boolean {
         return _hasStarted && isPausedLike(_timerState);
+    }
+
+    function isRecoveryTargetReached(targetMs as Number) as Boolean {
+        return (targetMs > 0) && isPaused() && (_currentPauseMs >= targetMs);
+    }
+
+    function shouldTriggerRecoveryAlert(targetMs as Number) as Boolean {
+        if ((targetMs <= 0) || _targetAlertFiredForPause || !isRecoveryTargetReached(targetMs)) {
+            return false;
+        }
+
+        _targetAlertFiredForPause = true;
+        return true;
     }
 
     private function handleTimerEvent(nextState as Number, source as String) as Void {
@@ -157,7 +168,6 @@ class MovePauseTimingEngine {
         }
 
         var delta = now - lastTickMs;
-
         if (delta <= 0) {
             if (delta < 0) {
                 MovePauseLogger.debug("System timer moved backwards; skipped delta.");
@@ -167,15 +177,12 @@ class MovePauseTimingEngine {
 
         if (_timerState == Activity.TIMER_STATE_ON) {
             _hasStarted = true;
-            _lapMovingMs += delta;
-            _totalMovingMs += delta;
+            _currentMoveMs += delta;
             _currentPauseMs = 0;
             return;
         }
 
         if (_hasStarted && isPausedLike(_timerState)) {
-            _lapPausedMs += delta;
-            _totalPausedMs += delta;
             _currentPauseMs += delta;
             return;
         }
@@ -185,18 +192,29 @@ class MovePauseTimingEngine {
 
     private function applyState(nextState as Number, source as String) as Void {
         var previousState = _timerState;
+
+        if ((previousState == Activity.TIMER_STATE_ON) && isPausedLike(nextState)) {
+            _previousMoveMs = _currentMoveMs;
+            _currentMoveMs = 0;
+            _currentPauseMs = 0;
+            _targetAlertFiredForPause = false;
+        } else if (isPausedLike(previousState) && (nextState == Activity.TIMER_STATE_ON)) {
+            _currentMoveMs = 0;
+            _currentPauseMs = 0;
+            _targetAlertFiredForPause = false;
+        } else if (!_hasStarted && (nextState == Activity.TIMER_STATE_ON)) {
+            _currentMoveMs = 0;
+            _currentPauseMs = 0;
+            _targetAlertFiredForPause = false;
+        } else if (!isPausedLike(nextState)) {
+            _currentPauseMs = 0;
+        }
+
         _timerState = nextState;
 
         if (_timerState == Activity.TIMER_STATE_ON) {
             _hasStarted = true;
-            _currentPauseMs = 0;
-        } else if (!_hasStarted) {
-            _currentPauseMs = 0;
-        } else if (isPausedLike(_timerState)) {
-            if (!isPausedLike(previousState)) {
-                _currentPauseMs = 0;
-            }
-        } else {
+        } else if (_timerState == Activity.TIMER_STATE_OFF) {
             _currentPauseMs = 0;
         }
 
@@ -205,12 +223,12 @@ class MovePauseTimingEngine {
         }
     }
 
-    private function didActivityStart(info as Activity.Info, expectedMoving as Number, expectedPaused as Number) as Boolean {
-        if (expectedMoving > 0 || expectedPaused > 0) {
+    private function didActivityStart(observedState as Number, expectedMoving as Number, expectedPaused as Number) as Boolean {
+        if ((expectedMoving > 0) || (expectedPaused > 0)) {
             return true;
         }
 
-        return getObservedState(info) == Activity.TIMER_STATE_ON;
+        return observedState == Activity.TIMER_STATE_ON;
     }
 
     private function getExpectedMovingMs(info as Activity.Info) as Number {
@@ -232,7 +250,6 @@ class MovePauseTimingEngine {
         }
 
         var pausedTime = elapsedTime - timerTime;
-
         if (pausedTime < 0) {
             return 0;
         }
@@ -241,8 +258,7 @@ class MovePauseTimingEngine {
     }
 
     private function getObservedState(info as Activity.Info) as Number {
-        var timerState = info.timerState;
-        return normalizeState(timerState);
+        return normalizeState(info.timerState);
     }
 
     private function isPausedLike(state as Number) as Boolean {
@@ -255,55 +271,5 @@ class MovePauseTimingEngine {
         }
 
         return state;
-    }
-
-    private function reconcile(info as Activity.Info) as Void {
-        var expectedMoving = getExpectedMovingMs(info);
-        var expectedPaused = getExpectedPausedMs(info);
-
-        if (!_hasStarted && didActivityStart(info, expectedMoving, expectedPaused)) {
-            _hasStarted = true;
-        }
-
-        if (numberDistance(_totalMovingMs, expectedMoving) > DRIFT_CORRECTION_THRESHOLD_MS) {
-            var movingCorrection = expectedMoving - _totalMovingMs;
-            _totalMovingMs = expectedMoving;
-            _lapMovingMs = correctedLapValue(_lapMovingMs, movingCorrection);
-            MovePauseLogger.debug("Corrected moving total from Activity.Info.");
-        }
-
-        if (numberDistance(_totalPausedMs, expectedPaused) > DRIFT_CORRECTION_THRESHOLD_MS) {
-            var pausedCorrection = expectedPaused - _totalPausedMs;
-            _totalPausedMs = expectedPaused;
-            _lapPausedMs = correctedLapValue(_lapPausedMs, pausedCorrection);
-            MovePauseLogger.debug("Corrected paused total from Activity.Info.");
-        }
-
-        if (!_hasStarted) {
-            _currentPauseMs = 0;
-        }
-    }
-
-    private function numberDistance(left as Number, right as Number) as Number {
-        if (left >= right) {
-            return left - right;
-        }
-
-        return right - left;
-    }
-
-    private function correctedLapValue(lapValue as Number, correction as Number) as Number {
-        var correctedValue = lapValue + correction;
-
-        if (correctedValue < 0) {
-            return 0;
-        }
-
-        return correctedValue;
-    }
-
-    private function resetLapTotals() as Void {
-        _lapMovingMs = 0;
-        _lapPausedMs = 0;
     }
 }

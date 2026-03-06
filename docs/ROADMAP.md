@@ -6,7 +6,7 @@ It is intentionally narrow. The aim is to solve one clear problem well before ex
 
 This roadmap is directional rather than fixed. It may change as simulator and device testing reveal platform constraints, device-specific behaviour, or better ways to keep v1 focused.
 
-The initial repository foundation is already in place. Phase 1 has now been validated in the simulator and on an Epix Pro (Gen 2, 47mm). The repository also contains an initial phase-2 lap-tracking implementation, so the active work has moved on to validating lap behaviour and then improving the UI.
+The initial repository foundation is already in place. Core timer-state handling has been validated in the simulator and on an Epix Pro (Gen 2, 47mm). The active work now is validating the newer period-based UI, recovery targets, and alert behaviour in real use.
 
 ## Guiding Principles
 
@@ -26,8 +26,7 @@ Build the minimum logic needed to distinguish moving and paused time reliably.
 
 * Data Field scaffold created
 * moving and paused state tracked from Garmin timer state
-* total moving time accumulated correctly
-* total paused time accumulated correctly
+* duration accumulation behaves correctly across move and pause periods
 * pause and resume transitions handled safely
 * lightweight debug logging added
 
@@ -37,32 +36,32 @@ This phase should not try to solve UI polish, configuration, or broad device sup
 
 ### Exit Criteria
 
-* totals behave correctly in the simulator
-* totals behave correctly on at least one real watch
+* core durations behave correctly in the simulator
+* core durations behave correctly on at least one real watch
 * no obvious drift or double-counting across repeated pause and resume cycles
 
-## Phase 2: Lap Tracking
+## Phase 2: Period Model
 
 ### Objective
 
-Support rep-like usage by tracking moving and paused time within the current lap.
+Support rep-like usage by modelling the run as alternating move and pause periods.
 
 ### Deliverables
 
-* lap moving time
-* lap paused time
-* lap reset model defined
-* manual-lap reset implemented cleanly
-* repeated pause and resume within a lap handled correctly
+* current move duration
+* current pause duration
+* previous move duration captured on every move-to-pause transition
+* lap events explicitly ignored in the displayed model
+* repeated pause and resume cycles handled correctly
 
 ### Notes
 
-The first lap model should stay simple: activity start and manual laps.
+The displayed semantics should stay simple: the field answers "how long has this move lasted?", "how long has this pause lasted?", and "how long was the last move?"
 
 ### Exit Criteria
 
 * runners can use the field for improvised intervals or hill reps without confusion
-* lap totals remain trustworthy across several laps in one run
+* previous-move references remain trustworthy across repeated move/pause cycles
 
 ## Phase 3: Usable UI
 
@@ -74,6 +73,7 @@ Make the field genuinely useful at a glance during a real run.
 
 * running-state layout
 * paused-state layout
+* ready-state layout
 * hierarchy for key metrics
 * initial support for a small device subset
 * typography and spacing refined for quick readability
@@ -85,7 +85,7 @@ Prioritise the paused state. That is where the runner most needs help.
 ### Exit Criteria
 
 * while paused, the runner can instantly see how long recovery has lasted
-* while moving, the runner can understand current lap and total breakdowns without effort
+* while moving, the runner can compare the current move against the previous move without effort
 * layouts remain legible on the chosen launch devices
 
 ## Phase 4: Recovery Targets
@@ -97,7 +97,7 @@ Support practical standing recoveries without requiring a phone.
 ### Deliverables
 
 * configurable default target duration
-* optional remaining-time display while paused
+* countdown while paused, then overtime once the target is exceeded
 * optional vibration when target is reached
 * no repeated buzzing during a single pause
 
@@ -175,7 +175,7 @@ Ship a stable first release that clearly solves the core problem.
 
 ### Exit Criteria
 
-* MovePause solves ad hoc pause-versus-move timing for a defined set of runners and devices
+* MovePause solves ad hoc move-versus-pause timing for a defined set of runners and devices
 * the project has a stable baseline for future improvements
 
 ## Post-v1 Directions
@@ -215,7 +215,7 @@ Different watches may vary in layout constraints and behaviour.
 
 ### Activity Semantics
 
-Manual pause, Auto Pause, lap events, and timer state may behave differently across device families.
+Manual pause, Auto Pause, and timer state may behave differently across device families.
 
 ### UI Overload
 
@@ -231,8 +231,8 @@ A strong early outcome would look like this:
 
 * runners can use the field in unstructured sessions without reaching for a phone
 * current recovery duration is obvious while paused
-* moving and paused totals feel trustworthy
-* lap tracking is good enough for improvised reps
+* move and pause periods feel trustworthy
+* previous-move comparison is useful for improvised reps
 * early testers describe the field as simple and useful rather than clever and fiddly
 
 ## Suggested Issue Buckets
@@ -240,7 +240,7 @@ A strong early outcome would look like this:
 To keep the roadmap actionable, issues can be grouped under:
 
 * timing engine
-* lap tracking
+* move/pause periods
 * UI and layout
 * recovery targets
 * device compatibility
@@ -252,7 +252,7 @@ To keep the roadmap actionable, issues can be grouped under:
 A sensible cadence would be:
 
 * core scaffold and timing engine
-* lap tracking
+* period model
 * maintainer prototype
 * maintainer field testing
 * small beta

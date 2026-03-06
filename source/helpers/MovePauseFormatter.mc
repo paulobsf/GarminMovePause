@@ -1,6 +1,20 @@
 import Toybox.Lang;
 
 module MovePauseFormatter {
+    function formatCountdown(milliseconds as Number) as String {
+        var safeMilliseconds = milliseconds;
+
+        if (safeMilliseconds < 0) {
+            safeMilliseconds = 0;
+        }
+
+        return formatDuration(safeMilliseconds + 999);
+    }
+
+    function formatOvertime(milliseconds as Number) as String {
+        return "+" + formatDuration(milliseconds);
+    }
+
     function formatDuration(milliseconds as Number) as String {
         var safeMilliseconds = milliseconds;
 

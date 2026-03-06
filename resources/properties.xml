@@ -1,0 +1,31 @@
+<resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <properties>
+        <property id="field_background_style" type="number">0</property>
+        <property id="recovery_target_seconds" type="number">90</property>
+        <property id="buzz_on_target" type="boolean">true</property>
+    </properties>
+
+    <settings>
+        <group id="recovery_target_group" title="@Strings.RecoveryTargetGroupTitle" description="@Strings.RecoveryTargetGroupDescription">
+            <setting propertyKey="@Properties.field_background_style" title="@Strings.FieldBackgroundTitle" prompt="@Strings.FieldBackgroundPrompt">
+                <settingConfig type="list">
+                    <listEntry value="0">@Strings.FieldBackgroundBlack</listEntry>
+                    <listEntry value="1">@Strings.FieldBackgroundWhite</listEntry>
+                </settingConfig>
+            </setting>
+
+            <setting propertyKey="@Properties.recovery_target_seconds" title="@Strings.RecoveryTargetTitle" prompt="@Strings.RecoveryTargetPrompt">
+                <settingConfig type="list">
+                    <listEntry value="0">@Strings.RecoveryTargetOff</listEntry>
+                    <listEntry value="60">@Strings.RecoveryTarget60</listEntry>
+                    <listEntry value="90">@Strings.RecoveryTarget90</listEntry>
+                    <listEntry value="120">@Strings.RecoveryTarget120</listEntry>
+                </settingConfig>
+            </setting>
+
+            <setting propertyKey="@Properties.buzz_on_target" title="@Strings.BuzzOnTargetTitle">
+                <settingConfig type="boolean" />
+            </setting>
+        </group>
+    </settings>
+</resources>

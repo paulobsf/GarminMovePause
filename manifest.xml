@@ -5,7 +5,7 @@
         name="@Strings.AppName"
         entry="MovePauseApp"
         launcherIcon="@Drawables.LauncherIcon"
-        minApiLevel="2.1.0">
+        minApiLevel="2.4.0">
         <iq:products>
             <iq:product id="epix2pro47mm" />
         </iq:products>
