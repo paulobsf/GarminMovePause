@@ -1,0 +1,49 @@
+# macOS
+
+.DS_Store
+
+# VS Code
+
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# Garmin / Connect IQ build outputs
+
+bin/
+build/
+out/
+
+# Monkey C generated or packaged artefacts
+
+*.iq
+*.prg
+*.barrel
+
+# Logs
+
+*.log
+
+# Temporary files
+
+*.tmp
+*.swp
+*.swo
+*~
+
+# Java
+
+hs_err_pid*
+
+# Environment and local config
+
+.env
+.env.*
+*.local
+
+# Python cache, in case helper scripts are added later
+
+**pycache**/
+*.pyc

@@ -1,0 +1,50 @@
+name: Feature request
+description: Propose a focused product, UX, or implementation change.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: Describe the running scenario this request is trying to support.
+      placeholder: During hill reps, I want the paused view to show recovery time more prominently than total run time.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Explain what is missing or unclear in the current design.
+      placeholder: The current paused-layout direction may still make recovery timing harder to scan quickly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_change
+    attributes:
+      label: Proposed change
+      description: Describe the change you want and why it improves the product.
+      placeholder: Show current pause duration in the largest field and move total paused time to a smaller row.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Note any simpler or narrower alternatives you considered.
+      placeholder: Keep the current layout but add a configurable emphasis mode.
+    validations:
+      required: false
+
+  - type: textarea
+    id: device_constraints
+    attributes:
+      label: Device constraints or assumptions
+      description: Note any watch-specific constraints that may affect the idea.
+      placeholder: This would need to remain legible on smaller round displays.
+    validations:
+      required: false
