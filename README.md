@@ -4,7 +4,7 @@ MovePause is a planned Garmin Connect IQ data field for showing moving time, pau
 
 ## Status
 
-MovePause has completed its initial public foundation pass. The repository now contains the project narrative, technical direction, roadmap, and contributor scaffolding, but implementation has not started yet.
+MovePause now has an initial Connect IQ data field scaffold and a phase-1 timing implementation. Simulator verification and real-watch validation are still needed before phase 1 can be considered complete.
 
 ## Problem It Solves
 
@@ -50,7 +50,7 @@ MovePause is not currently planned to:
 
 ## Repo Guide
 
-This repository is currently a public build journal for the project.
+This repository now contains the early Connect IQ implementation alongside the docs that describe the current direction.
 
 * [Technical design notes](docs/TECHNICAL.md) describe the proposed behaviour, platform approach, and implementation sequence for v1.
 * [Roadmap](docs/ROADMAP.md) describes the planned phases, exit criteria, and likely post-v1 directions.
