@@ -1,20 +1,6 @@
 import Toybox.Lang;
 
 module MovePauseFormatter {
-    function formatCountdown(milliseconds as Number) as String {
-        var safeMilliseconds = milliseconds;
-
-        if (safeMilliseconds < 0) {
-            safeMilliseconds = 0;
-        }
-
-        return formatDuration(safeMilliseconds + 999);
-    }
-
-    function formatOvertime(milliseconds as Number) as String {
-        return "+" + formatDuration(milliseconds);
-    }
-
     function formatDuration(milliseconds as Number) as String {
         var safeMilliseconds = milliseconds;
 
@@ -32,22 +18,6 @@ module MovePauseFormatter {
         }
 
         return minutes.format("%d") + ":" + twoDigits(seconds);
-    }
-
-    function formatStateLabel(hasStarted as Boolean, isMoving as Boolean, isPaused as Boolean) as String {
-        if (!hasStarted) {
-            return "READY";
-        }
-
-        if (isMoving) {
-            return "MOVING";
-        }
-
-        if (isPaused) {
-            return "PAUSED";
-        }
-
-        return "READY";
     }
 
     function twoDigits(value as Number) as String {

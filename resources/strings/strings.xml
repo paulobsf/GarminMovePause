@@ -1,16 +1,3 @@
 <strings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
     <string id="AppName">MovePause</string>
-    <string id="RecoveryTargetGroupTitle">Recovery Targets</string>
-    <string id="RecoveryTargetGroupDescription">Choose a default recovery target and pause feedback behaviour.</string>
-    <string id="FieldBackgroundTitle">Field background</string>
-    <string id="FieldBackgroundPrompt">Choose whether the field renders for a black or white page background.</string>
-    <string id="FieldBackgroundBlack">Black</string>
-    <string id="FieldBackgroundWhite">White</string>
-    <string id="RecoveryTargetTitle">Default recovery target</string>
-    <string id="RecoveryTargetPrompt">Pick the standing recovery target to use while paused.</string>
-    <string id="RecoveryTargetOff">Off</string>
-    <string id="RecoveryTarget60">60 seconds</string>
-    <string id="RecoveryTarget90">90 seconds</string>
-    <string id="RecoveryTarget120">120 seconds</string>
-    <string id="BuzzOnTargetTitle">Buzz when target is reached</string>
 </strings>

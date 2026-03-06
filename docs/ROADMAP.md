@@ -6,7 +6,7 @@ It is intentionally narrow. The aim is to solve one clear problem well before ex
 
 This roadmap is directional rather than fixed. It may change as simulator and device testing reveal platform constraints, device-specific behaviour, or better ways to keep v1 focused.
 
-The initial repository foundation is already in place. Core timer-state handling has been validated in the simulator and on an Epix Pro (Gen 2, 47mm). The active work now is validating the newer period-based UI, recovery targets, and alert behaviour in real use.
+The initial repository foundation is already in place. Core timer-state handling has been validated in the simulator and on an Epix Pro (Gen 2, 47mm). The active work now is validating the period-based UI, self-learned pacing cues, and alert behaviour in real use.
 
 ## Guiding Principles
 
@@ -32,7 +32,7 @@ Build the minimum logic needed to distinguish moving and paused time reliably.
 
 ### Notes
 
-This phase should not try to solve UI polish, configuration, or broad device support.
+This phase should not try to solve UI polish or broad device support.
 
 ### Exit Criteria
 
@@ -88,26 +88,27 @@ Prioritise the paused state. That is where the runner most needs help.
 * while moving, the runner can compare the current move against the previous move without effort
 * layouts remain legible on the chosen launch devices
 
-## Phase 4: Recovery Targets
+## Phase 4: Self-Learned Pacing
 
 ### Objective
 
-Support practical standing recoveries without requiring a phone.
+Support practical standing recoveries without requiring a pre-set target.
 
 ### Deliverables
 
-* configurable default target duration
-* countdown while paused, then overtime once the target is exceeded
-* optional vibration when target is reached
-* no repeated buzzing during a single pause
+* previous pause duration captured for paused-state comparison
+* paused-state bar fills against the previous pause once available
+* vibration every 30 seconds while paused
+* beep/vibrate when move or pause reference reaches 100%
+* no settings screen
 
 ### Notes
 
-Keep configuration modest. A few sensible defaults are better than a large settings surface.
+Prefer behaviour learned from the session over configuration.
 
 ### Exit Criteria
 
-* a runner can manage a 60, 90, or 120 second recovery from the watch alone
+* a runner can manage improvised recoveries from the watch alone
 * alerts feel reliable rather than noisy
 
 ## Phase 5: Field Testing
@@ -242,7 +243,7 @@ To keep the roadmap actionable, issues can be grouped under:
 * timing engine
 * move/pause periods
 * UI and layout
-* recovery targets
+* pacing and alerts
 * device compatibility
 * documentation
 * beta feedback

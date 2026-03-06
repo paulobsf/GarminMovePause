@@ -14,10 +14,6 @@ class MovePauseApp extends Application.AppBase {
     function onStop(state as Dictionary?) as Void {
     }
 
-    function onSettingsChanged() as Void {
-        WatchUi.requestUpdate();
-    }
-
     function getInitialView() as [Views] or [Views, InputDelegates] {
         return [new MovePauseField()];
     }

@@ -1,10 +1,10 @@
 # MovePause for Garmin
 
-MovePause is a Garmin Connect IQ data field for improvised interval-style runs where you want to track moving time, paused time, and recovery pacing without pre-building a workout.
+MovePause is a Garmin Connect IQ data field for improvised interval-style runs where you want to track moving time, paused time, and pacing against the last completed move or pause without pre-building a workout.
 
 ## Status
 
-MovePause is in active early implementation. Core timer-state handling has been validated in the simulator and on an Epix Pro (Gen 2, 47mm), and the current UI/recovery-target direction is being iterated in real use.
+MovePause is in active early implementation. Core timer-state handling has been validated in the simulator and on an Epix Pro (Gen 2, 47mm), and the current UI and alert behaviour is being iterated in real use.
 
 ## Problem It Solves
 
@@ -21,7 +21,7 @@ During those sessions, Garmin's standard running experience does not provide a s
 * how long the current move has lasted
 * how long the current pause has lasted
 * how long the previous move lasted
-* whether the current pause is on track against a simple recovery target
+* whether the current move or pause is on track against the previous one
 
 MovePause is intended to make those distinctions glanceable without requiring a pre-built workout.
 
@@ -33,10 +33,12 @@ The current v1 plan is intentionally narrow:
 * Garmin timer state as the source of truth for moving versus paused time
 * an alternating move/pause model rather than lap-based workout logic
 * current moving duration as the main moving-state metric
-* current pause duration or remaining recovery time as the main paused-state metric
+* current pause duration as the main paused-state metric
 * previous moving duration as the reference shown in both moving and paused states
+* previous pause duration as the paused-state comparison reference
 * progress cues that compare the current move or pause against the relevant reference
-* an optional recovery target with a vibration alert
+* 30-second pause haptics and previous-period completion alerts
+* no settings surface; behaviour is learned from the session itself
 * a small initial device list rather than broad watch support on day one
 
 ## Non-goals

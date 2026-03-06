@@ -6,9 +6,12 @@ class MovePauseTimingEngine {
     private var _currentMoveMs as Number = 0;
     private var _currentPauseMs as Number = 0;
     private var _hasStarted as Boolean = false;
+    private var _lastPausePaceBucket as Number = 0;
     private var _lastTickMs as Number?;
+    private var _moveReferenceAlertFired as Boolean = false;
+    private var _pauseReferenceAlertFired as Boolean = false;
     private var _previousMoveMs as Number = 0;
-    private var _targetAlertFiredForPause as Boolean = false;
+    private var _previousPauseMs as Number = 0;
     private var _timerState as Number = Activity.TIMER_STATE_OFF;
 
     function initialize() {
@@ -19,9 +22,12 @@ class MovePauseTimingEngine {
         _currentMoveMs = 0;
         _currentPauseMs = 0;
         _hasStarted = false;
+        _lastPausePaceBucket = 0;
         _lastTickMs = null;
+        _moveReferenceAlertFired = false;
+        _pauseReferenceAlertFired = false;
         _previousMoveMs = 0;
-        _targetAlertFiredForPause = false;
+        _previousPauseMs = 0;
         _timerState = Activity.TIMER_STATE_OFF;
         MovePauseLogger.debug("Timing engine reset.");
     }
@@ -40,8 +46,11 @@ class MovePauseTimingEngine {
 
         _currentMoveMs = 0;
         _currentPauseMs = 0;
+        _lastPausePaceBucket = 0;
+        _moveReferenceAlertFired = false;
+        _pauseReferenceAlertFired = false;
         _previousMoveMs = 0;
-        _targetAlertFiredForPause = false;
+        _previousPauseMs = 0;
         _timerState = observedState;
         _hasStarted = didActivityStart(observedState, expectedMoving, expectedPaused);
 
@@ -50,11 +59,15 @@ class MovePauseTimingEngine {
             return;
         }
 
-        // Best-effort seeding only when move/pause boundaries are unambiguous.
         if ((observedState == Activity.TIMER_STATE_ON) && (expectedPaused <= 0)) {
             _currentMoveMs = expectedMoving;
-        } else if (isPausedLike(observedState) && (expectedMoving > 0)) {
-            _previousMoveMs = expectedMoving;
+        } else if (isPausedLike(observedState)) {
+            _currentPauseMs = expectedPaused;
+            _lastPausePaceBucket = getCompletedBuckets(_currentPauseMs, 30000);
+
+            if (expectedMoving > 0) {
+                _previousMoveMs = expectedMoving;
+            }
         }
     }
 
@@ -106,21 +119,16 @@ class MovePauseTimingEngine {
         return _previousMoveMs;
     }
 
-    function getRemainingRecoveryMs(targetMs as Number) as Number {
-        if (targetMs <= 0) {
-            return 0;
-        }
-
-        var remainingMs = targetMs - _currentPauseMs;
-        if (remainingMs < 0) {
-            return 0;
-        }
-
-        return remainingMs;
+    function getPreviousPauseMs() as Number {
+        return _previousPauseMs;
     }
 
     function hasPreviousMove() as Boolean {
         return _previousMoveMs > 0;
+    }
+
+    function hasPreviousPause() as Boolean {
+        return _previousPauseMs > 0;
     }
 
     function hasStarted() as Boolean {
@@ -135,16 +143,43 @@ class MovePauseTimingEngine {
         return _hasStarted && isPausedLike(_timerState);
     }
 
-    function isRecoveryTargetReached(targetMs as Number) as Boolean {
-        return (targetMs > 0) && isPaused() && (_currentPauseMs >= targetMs);
-    }
-
-    function shouldTriggerRecoveryAlert(targetMs as Number) as Boolean {
-        if ((targetMs <= 0) || _targetAlertFiredForPause || !isRecoveryTargetReached(targetMs)) {
+    function shouldTriggerMoveReferenceAlert() as Boolean {
+        if (!hasPreviousMove() || !isMoving() || _moveReferenceAlertFired) {
             return false;
         }
 
-        _targetAlertFiredForPause = true;
+        if (_currentMoveMs < _previousMoveMs) {
+            return false;
+        }
+
+        _moveReferenceAlertFired = true;
+        return true;
+    }
+
+    function shouldTriggerPauseReferenceAlert() as Boolean {
+        if (!hasPreviousPause() || !isPaused() || _pauseReferenceAlertFired) {
+            return false;
+        }
+
+        if (_currentPauseMs < _previousPauseMs) {
+            return false;
+        }
+
+        _pauseReferenceAlertFired = true;
+        return true;
+    }
+
+    function shouldTriggerPausePaceAlert(intervalMs as Number) as Boolean {
+        if (!isPaused() || (intervalMs <= 0)) {
+            return false;
+        }
+
+        var completedBuckets = getCompletedBuckets(_currentPauseMs, intervalMs);
+        if ((completedBuckets <= 0) || (completedBuckets <= _lastPausePaceBucket)) {
+            return false;
+        }
+
+        _lastPausePaceBucket = completedBuckets;
         return true;
     }
 
@@ -194,20 +229,32 @@ class MovePauseTimingEngine {
         var previousState = _timerState;
 
         if ((previousState == Activity.TIMER_STATE_ON) && isPausedLike(nextState)) {
-            _previousMoveMs = _currentMoveMs;
+            if (_currentMoveMs > 0) {
+                _previousMoveMs = _currentMoveMs;
+            }
+
             _currentMoveMs = 0;
             _currentPauseMs = 0;
-            _targetAlertFiredForPause = false;
+            _pauseReferenceAlertFired = false;
+            _lastPausePaceBucket = 0;
         } else if (isPausedLike(previousState) && (nextState == Activity.TIMER_STATE_ON)) {
+            if (_currentPauseMs > 0) {
+                _previousPauseMs = _currentPauseMs;
+            }
+
             _currentMoveMs = 0;
             _currentPauseMs = 0;
-            _targetAlertFiredForPause = false;
+            _moveReferenceAlertFired = false;
+            _lastPausePaceBucket = 0;
         } else if (!_hasStarted && (nextState == Activity.TIMER_STATE_ON)) {
             _currentMoveMs = 0;
             _currentPauseMs = 0;
-            _targetAlertFiredForPause = false;
+            _moveReferenceAlertFired = false;
+            _pauseReferenceAlertFired = false;
+            _lastPausePaceBucket = 0;
         } else if (!isPausedLike(nextState)) {
             _currentPauseMs = 0;
+            _lastPausePaceBucket = 0;
         }
 
         _timerState = nextState;
@@ -216,6 +263,7 @@ class MovePauseTimingEngine {
             _hasStarted = true;
         } else if (_timerState == Activity.TIMER_STATE_OFF) {
             _currentPauseMs = 0;
+            _lastPausePaceBucket = 0;
         }
 
         if (previousState != nextState) {
@@ -229,6 +277,15 @@ class MovePauseTimingEngine {
         }
 
         return observedState == Activity.TIMER_STATE_ON;
+    }
+
+    private function getCompletedBuckets(durationMs as Number, intervalMs as Number) as Number {
+        if ((durationMs < intervalMs) || (intervalMs <= 0)) {
+            return 0;
+        }
+
+        var elapsedSinceBoundary = durationMs % intervalMs;
+        return (durationMs - elapsedSinceBoundary) / intervalMs;
     }
 
     private function getExpectedMovingMs(info as Activity.Info) as Number {

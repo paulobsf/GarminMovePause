@@ -39,8 +39,10 @@ The initial runtime state should stay small and explicit. A reasonable state mod
 * current moving-period duration
 * current pause-period duration
 * previous moving-period duration
-* configured target pause duration
-* whether the target alert has already fired for the current pause
+* previous pause-period duration
+* whether the move-reference alert has fired for the current move
+* whether the pause-reference alert has fired for the current pause
+* which 30-second pause cue bucket has most recently fired
 
 Derived values should remain derived where possible. The first version should optimise for clarity and debuggability over clever abstractions.
 
@@ -95,9 +97,9 @@ The first move of the session has no previous reference, so no comparison bar sh
 The paused state should prioritise recovery-oriented information:
 
 * current pause duration in the largest treatment
-* optional time remaining to a configured target
 * previous moving duration as the secondary metric
-* a progress bar that depletes as the pause target is consumed, then turns full and red once the pause overruns
+* a progress bar that fills against the previous pause once that reference exists
+* a 30-second vibration cue even on the first pause
 
 ### Design Principles
 
@@ -118,8 +120,7 @@ The planned v1 work is likely to touch these areas:
 * periodic updates via `compute(info)`
 * activity timer state inspection
 * pause and resume related callbacks where they are available and reliable
-* `Attention` vibration support
-* application properties or settings
+* `Attention` vibration and tone support
 
 Possible later work, but not a v1 requirement:
 
@@ -142,7 +143,7 @@ The planned workflow is:
 3. Build the timing engine before polishing UI details.
 4. Use the simulator for arithmetic checks, state transitions, and layout iteration.
 5. Test early on a real watch for pause, resume, Auto Pause, and alert behaviour.
-6. Add settings only after the core semantics are stable.
+6. Prefer self-learning behaviour over a settings surface unless a real user need proves otherwise.
 
 Testing should remain practical:
 
@@ -171,8 +172,8 @@ The planned implementation order is:
 
 ### Phase 4
 
-* add configurable recovery targets
-* add an optional vibration alert when the target is reached
+* add previous-pause reference tracking for the paused view
+* add 30-second pause haptics and previous-period completion alerts
 
 ### Phase 5
 
@@ -186,9 +187,9 @@ The repository currently contains:
 
 * a Connect IQ Data Field scaffold for `epix2pro47mm`
 * validated early timer-state handling on simulator and watch
-* a move/pause period model with previous-move reference tracking
+* a move/pause period model with previous-move and previous-pause reference tracking
 * current moving, paused, and ready layouts under active iteration
-* recovery target settings, remaining-time/overtime behaviour, and one-shot vibration alerts
+* session-learned progress cues plus vibration and tone alerts
 * resources, manifest, and jungle files for the app project
 * public documentation describing the project and its direction
 * contribution guidance and issue templates
@@ -204,7 +205,6 @@ MovePause/
     strings/
     layouts/
     drawables/
-    properties.xml
   src/
     MovePauseField.mc
     helpers/
@@ -219,8 +219,8 @@ These questions remain open and should be resolved through a mix of implementati
 * which Garmin devices should be supported first
 * whether very short pauses should count by default
 * whether the moving view should always compare against the previous move, or allow a simpler mode
-* whether the paused view should show elapsed time only, or elapsed plus remaining time by default when a target exists
-* how much configurability is useful before the field becomes cluttered
+* whether the pause reference alert should feel identical to the move reference alert
+* whether any configurability is ever justified, or whether self-learning behaviour should remain the whole product surface
 
 ## 12. Future Technical Topics
 

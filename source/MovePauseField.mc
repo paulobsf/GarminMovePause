@@ -5,36 +5,26 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 class MovePauseField extends WatchUi.DataField {
-    private const EDGE_PADDING = 10;
-    private const OVERTIME_COLOR = 0xD94B4B;
-    private const PAUSED_COLOR = 0xF5A13B;
-    private const PRIMARY_MARKER_GAP = 10;
-    private const PROGRESS_BAR_HEIGHT = 4;
-    private const PROGRESS_HEAD_SIZE = 8;
-    private const ROUND_SAFE_MARGIN = 4;
-    private const SAFE_BOTTOM_PADDING = 14;
-    private const SECONDARY_ICON_GAP = 6;
-    private const SECONDARY_ICON_SIZE = 10;
-    private const SECTION_GAP = 10;
-    private const MOVING_COLOR = 0x4EDB79;
+    private const BASE_HORIZONTAL_PADDING = 6;
+    private const BASE_VERTICAL_PADDING = 4;
     private const DARK_PROGRESS_TRACK_COLOR = 0x27302C;
     private const DARK_SECONDARY_TEXT_COLOR = 0xA8B4AD;
     private const LIGHT_PROGRESS_TRACK_COLOR = 0xD7DCD8;
     private const LIGHT_SECONDARY_TEXT_COLOR = 0x5B625E;
+    private const MOVING_COLOR = 0x4EDB79;
+    private const PAUSE_PACE_INTERVAL_MS = 30000;
+    private const PAUSED_COLOR = 0xF5A13B;
 
     private var _backgroundColor as Number = Graphics.COLOR_BLACK;
-    private var _buzzOnTarget as Boolean = true;
     private var _engine as MovePauseTimingEngine;
     private var _primaryTextColor as Number = Graphics.COLOR_WHITE;
     private var _progressTrackColor as Number = DARK_PROGRESS_TRACK_COLOR;
-    private var _recoveryTargetMs as Number = 0;
     private var _secondaryTextColor as Number = DARK_SECONDARY_TEXT_COLOR;
 
     function initialize() {
         DataField.initialize();
         _engine = new MovePauseTimingEngine();
         _engine.seedFromInfo(Activity.getActivityInfo());
-        loadSettings();
     }
 
     function onTimerLap() as Void {
@@ -62,17 +52,15 @@ class MovePauseField extends WatchUi.DataField {
     }
 
     function compute(info as Activity.Info) as Void {
-        loadSettings();
         _engine.sync(info);
-        triggerRecoveryAlertIfNeeded();
+        triggerAlertsIfNeeded();
     }
 
     function onUpdate(dc as Dc) as Void {
-        loadSettings();
+        updateTheme();
 
         dc.setColor(_primaryTextColor, _backgroundColor);
         dc.clear();
-        dc.setColor(_primaryTextColor, Graphics.COLOR_TRANSPARENT);
 
         if (!_engine.hasStarted()) {
             drawReadyLayout(dc);
@@ -87,130 +75,90 @@ class MovePauseField extends WatchUi.DataField {
         drawMovingLayout(dc);
     }
 
-    function loadSettings() as Void {
-        _recoveryTargetMs = MovePauseSettings.getRecoveryTargetMs();
-        _buzzOnTarget = MovePauseSettings.shouldBuzzOnTarget();
-
-        if (MovePauseSettings.useLightBackground()) {
-            _backgroundColor = Graphics.COLOR_WHITE;
-            _primaryTextColor = Graphics.COLOR_BLACK;
-            _secondaryTextColor = LIGHT_SECONDARY_TEXT_COLOR;
-            _progressTrackColor = LIGHT_PROGRESS_TRACK_COLOR;
-        } else {
-            _backgroundColor = Graphics.COLOR_BLACK;
-            _primaryTextColor = Graphics.COLOR_WHITE;
-            _secondaryTextColor = DARK_SECONDARY_TEXT_COLOR;
-            _progressTrackColor = DARK_PROGRESS_TRACK_COLOR;
-        }
-    }
-
-    private function triggerRecoveryAlertIfNeeded() as Void {
-        if (!_buzzOnTarget || !_engine.shouldTriggerRecoveryAlert(_recoveryTargetMs)) {
-            return;
-        }
-
-        if (!(Attention has :vibrate) || !(Attention has :VibeProfile)) {
-            return;
-        }
-
-        Attention.vibrate([
-            new Attention.VibeProfile(70, 120),
-            new Attention.VibeProfile(0, 80),
-            new Attention.VibeProfile(90, 140)
-        ]);
-    }
-
     private function drawReadyLayout(dc as Dc) as Void {
-        var width = dc.getWidth();
-        var height = dc.getHeight();
-        var primaryZoneTop = EDGE_PADDING;
-        var primaryZoneHeight = height - (2 * EDGE_PADDING);
-        var text = "Start activity to begin";
-        var textWidth = getSampleBandWidth(width, height, primaryZoneTop, primaryZoneHeight, 56, EDGE_PADDING + 6);
-        var font = pickMetricFont(dc, text, textWidth, [Graphics.FONT_LARGE, Graphics.FONT_MEDIUM, Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY]);
-        var textHeight = Graphics.getFontHeight(font);
-        var textY = primaryZoneTop + ((primaryZoneHeight - textHeight) / 2);
+        var frame = getContentFrame(dc);
+        var text = "READY";
+        var font = pickMetricFont(dc, text, frame[2], frame[3], [Graphics.FONT_LARGE, Graphics.FONT_MEDIUM, Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY]);
+        var textY = frame[1] + maxNumber((frame[3] - Graphics.getFontHeight(font)) / 2, 0);
 
-        dc.setColor(_primaryTextColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(width / 2, textY, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(_secondaryTextColor, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(frame[0] + (frame[2] / 2), textY, font, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     private function drawMovingLayout(dc as Dc) as Void {
-        var width = dc.getWidth();
-        var height = dc.getHeight();
-        var secondaryVisible = _engine.hasPreviousMove();
-        var secondaryHeight = secondaryVisible ? Graphics.getFontHeight(Graphics.FONT_MEDIUM) : 0;
-        var secondaryY = secondaryVisible ? (height - SAFE_BOTTOM_PADDING - secondaryHeight) : 0;
-        var progressVisible = secondaryVisible;
-        var progressY = progressVisible ? (secondaryY - SECTION_GAP - PROGRESS_BAR_HEIGHT) : 0;
-        var primaryZoneTop = EDGE_PADDING;
-        var primaryZoneBottom = progressVisible ? (progressY - 12) : (height - SAFE_BOTTOM_PADDING - 6);
-        var primaryText = MovePauseFormatter.formatDuration(_engine.getCurrentMoveMs());
-        var primaryWidth = getSampleBandWidth(width, height, primaryZoneTop, primaryZoneBottom - primaryZoneTop, 64, EDGE_PADDING + 6);
-        var primaryFont = pickMetricFont(dc, primaryText, primaryWidth, [Graphics.FONT_NUMBER_HOT, Graphics.FONT_NUMBER_MEDIUM, Graphics.FONT_LARGE, Graphics.FONT_MEDIUM]);
-        var primaryHeight = Graphics.getFontHeight(primaryFont);
-        var primaryY = primaryZoneTop + (((primaryZoneBottom - primaryZoneTop) - primaryHeight) / 2);
-
-        drawPrimaryMetric(dc, width / 2, primaryY, primaryFont, primaryText, MOVING_COLOR, false);
-
-        if (secondaryVisible) {
-            var progressBounds = getSafeBandRect(width, height, progressY, PROGRESS_BAR_HEIGHT, EDGE_PADDING + 8);
-            var progressTrackColor = isMovingPastReference() ? PAUSED_COLOR : _progressTrackColor;
-            var progressFillColor = isMovingPastReference() ? PAUSED_COLOR : MOVING_COLOR;
-            drawProgressBar(dc, progressBounds[0], progressY, progressBounds[1], PROGRESS_BAR_HEIGHT, getMovingProgressRatio(), progressTrackColor, progressFillColor, false);
-
-            var secondaryText = MovePauseFormatter.formatDuration(_engine.getPreviousMoveMs());
-            var secondaryWidth = getSampleBandWidth(width, height, height - 34, 28, 28, EDGE_PADDING + 6) - SECONDARY_ICON_SIZE - SECONDARY_ICON_GAP;
-            var secondaryFont = pickMetricFont(dc, secondaryText, secondaryWidth, [Graphics.FONT_MEDIUM, Graphics.FONT_SMALL, Graphics.FONT_TINY]);
-            secondaryHeight = Graphics.getFontHeight(secondaryFont);
-            secondaryY = height - SAFE_BOTTOM_PADDING - secondaryHeight;
-            drawSecondaryMetric(dc, width / 2, secondaryY, secondaryFont, secondaryText);
-        }
+        drawMetricLayout(
+            dc,
+            MovePauseFormatter.formatDuration(_engine.getCurrentMoveMs()),
+            MOVING_COLOR,
+            getMoveProgressRatio(),
+            _engine.hasPreviousMove()
+        );
     }
 
     private function drawPausedLayout(dc as Dc) as Void {
-        var width = dc.getWidth();
-        var height = dc.getHeight();
-        var secondaryVisible = _engine.hasPreviousMove();
-        var secondaryHeight = secondaryVisible ? Graphics.getFontHeight(Graphics.FONT_MEDIUM) : 0;
-        var secondaryY = secondaryVisible ? (height - SAFE_BOTTOM_PADDING - secondaryHeight) : 0;
-        var progressVisible = (_recoveryTargetMs > 0);
-        var progressY = secondaryVisible ? (secondaryY - SECTION_GAP - PROGRESS_BAR_HEIGHT) : (height - SAFE_BOTTOM_PADDING - PROGRESS_BAR_HEIGHT);
-        var primaryZoneTop = EDGE_PADDING;
-        var primaryZoneBottom = progressVisible ? (progressY - 12) : (secondaryVisible ? (secondaryY - 10) : (height - SAFE_BOTTOM_PADDING - 6));
-        var primaryText = getPausedPrimaryText();
-        var primaryWidth = getSampleBandWidth(width, height, primaryZoneTop, primaryZoneBottom - primaryZoneTop, 64, EDGE_PADDING + 6);
-        var primaryFont = pickMetricFont(dc, primaryText, primaryWidth, [Graphics.FONT_NUMBER_HOT, Graphics.FONT_NUMBER_MEDIUM, Graphics.FONT_LARGE, Graphics.FONT_MEDIUM]);
-        var primaryHeight = Graphics.getFontHeight(primaryFont);
-        var primaryY = primaryZoneTop + (((primaryZoneBottom - primaryZoneTop) - primaryHeight) / 2);
+        drawMetricLayout(
+            dc,
+            MovePauseFormatter.formatDuration(_engine.getCurrentPauseMs()),
+            PAUSED_COLOR,
+            getPauseProgressRatio(),
+            _engine.hasPreviousPause()
+        );
+    }
 
-        drawPrimaryMetric(dc, width / 2, primaryY, primaryFont, primaryText, PAUSED_COLOR, true);
+    private function drawMetricLayout(dc as Dc, primaryText as String, primaryColor as Number, progressRatio as Float, progressVisible as Boolean) as Void {
+        var frame = getContentFrame(dc);
+        var contentLeft = frame[0];
+        var contentTop = frame[1];
+        var contentWidth = frame[2];
+        var contentHeight = frame[3];
+        var secondaryVisible = _engine.hasPreviousMove();
+        var secondaryText = secondaryVisible ? MovePauseFormatter.formatDuration(_engine.getPreviousMoveMs()) : "";
+        var gap = (secondaryVisible || progressVisible) ? getSectionGap(contentHeight) : 0;
+        var progressHeight = progressVisible ? getProgressBarHeight(contentHeight) : 0;
+        var secondaryFont = Graphics.FONT_XTINY;
+        var secondaryHeight = 0;
+        var secondaryY = 0;
+        var progressY = 0;
+        var availableBottom = contentTop + contentHeight;
+
+        if (secondaryVisible) {
+            secondaryFont = pickMetricFont(dc, secondaryText, contentWidth, getSecondaryHeightBudget(contentHeight), [Graphics.FONT_MEDIUM, Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY]);
+            secondaryHeight = Graphics.getFontHeight(secondaryFont);
+            secondaryY = availableBottom - secondaryHeight;
+            availableBottom = secondaryY - (progressVisible ? gap : 0);
+        }
 
         if (progressVisible) {
-            var progressBounds = getSafeBandRect(width, height, progressY, PROGRESS_BAR_HEIGHT, EDGE_PADDING + 8);
-            var progressTrackColor = isPausedOvertime() ? OVERTIME_COLOR : _progressTrackColor;
-            var progressFillColor = isPausedOvertime() ? OVERTIME_COLOR : PAUSED_COLOR;
-            drawProgressBar(dc, progressBounds[0], progressY, progressBounds[1], PROGRESS_BAR_HEIGHT, getPausedProgressRatio(), progressTrackColor, progressFillColor, true);
+            progressY = availableBottom - progressHeight;
+            availableBottom = progressY - gap;
+        }
+
+        var primaryZoneHeight = availableBottom - contentTop;
+        var primaryFont = pickMetricFont(dc, primaryText, contentWidth, primaryZoneHeight, [Graphics.FONT_NUMBER_HOT, Graphics.FONT_NUMBER_MEDIUM, Graphics.FONT_LARGE, Graphics.FONT_MEDIUM, Graphics.FONT_SMALL, Graphics.FONT_TINY]);
+        var primaryHeight = Graphics.getFontHeight(primaryFont);
+        var primaryY = contentTop + maxNumber((primaryZoneHeight - primaryHeight) / 2, 0);
+
+        dc.setColor(primaryColor, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(contentLeft + (contentWidth / 2), primaryY, primaryFont, primaryText, Graphics.TEXT_JUSTIFY_CENTER);
+
+        if (progressVisible) {
+            drawProgressBar(dc, contentLeft, progressY, contentWidth, progressHeight, progressRatio, _progressTrackColor, primaryColor);
         }
 
         if (secondaryVisible) {
-            var secondaryText = MovePauseFormatter.formatDuration(_engine.getPreviousMoveMs());
-            var secondaryWidth = getSampleBandWidth(width, height, height - 34, 28, 28, EDGE_PADDING + 6) - SECONDARY_ICON_SIZE - SECONDARY_ICON_GAP;
-            var secondaryFont = pickMetricFont(dc, secondaryText, secondaryWidth, [Graphics.FONT_MEDIUM, Graphics.FONT_SMALL, Graphics.FONT_TINY]);
-            secondaryHeight = Graphics.getFontHeight(secondaryFont);
-            secondaryY = height - SAFE_BOTTOM_PADDING - secondaryHeight;
-            drawSecondaryMetric(dc, width / 2, secondaryY, secondaryFont, secondaryText);
+            dc.setColor(_secondaryTextColor, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(contentLeft + (contentWidth / 2), secondaryY, secondaryFont, secondaryText, Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
 
-    private function drawProgressBar(dc as Dc, x as Number, y as Number, width as Number, height as Number, progressRatio as Float or Number, trackColor as Number, fillColor as Number, alignRight as Boolean) as Void {
+    private function drawProgressBar(dc as Dc, x as Number, y as Number, width as Number, height as Number, progressRatio as Float or Number, trackColor as Number, fillColor as Number) as Void {
         var clampedRatio = clampRatio(progressRatio);
-        var radius = height / 2;
+        var radius = maxNumber(height / 2, 1);
 
         dc.setColor(trackColor, trackColor);
         dc.fillRoundedRectangle(x, y, width, height, radius);
 
-        if (clampedRatio <= 0) {
+        if (clampedRatio <= 0.0) {
             return;
         }
 
@@ -219,160 +167,62 @@ class MovePauseField extends WatchUi.DataField {
             fillWidth = width;
         }
 
-        var fillX = alignRight ? (x + width - fillWidth) : x;
         dc.setColor(fillColor, fillColor);
-        dc.fillRoundedRectangle(fillX, y, fillWidth, height, radius);
+        dc.fillRoundedRectangle(x, y, fillWidth, height, radius);
+    }
 
-        if ((clampedRatio < 1.0) && (fillWidth >= height)) {
-            var headSize = PROGRESS_HEAD_SIZE;
-            if (headSize < height) {
-                headSize = height;
-            }
+    private function triggerAlertsIfNeeded() as Void {
+        if (_engine.shouldTriggerMoveReferenceAlert() || _engine.shouldTriggerPauseReferenceAlert()) {
+            triggerReferenceCue();
+            return;
+        }
 
-            var headY = y - ((headSize - height) / 2);
-            var headX = alignRight ? (fillX - (headSize / 2)) : (fillX + fillWidth - (headSize / 2));
-
-            if (headX < x) {
-                headX = x;
-            }
-
-            if ((headX + headSize) > (x + width)) {
-                headX = x + width - headSize;
-            }
-
-            dc.fillRoundedRectangle(headX, headY, headSize, headSize, headSize / 2);
+        if (_engine.shouldTriggerPausePaceAlert(PAUSE_PACE_INTERVAL_MS)) {
+            triggerPausePaceCue();
         }
     }
 
-    private function drawPrimaryMetric(dc as Dc, centerX as Number, y as Number, font as Graphics.FontType, text as String, markerColor as Number, isPaused as Boolean) as Void {
-        var fontHeight = Graphics.getFontHeight(font);
-        var markerSize = fontHeight / 4;
-        var textWidth = dc.getTextWidthInPixels(text, font);
-
-        if (markerSize < 8) {
-            markerSize = 8;
+    private function triggerReferenceCue() as Void {
+        if (Attention has :playTone) {
+            Attention.playTone(Attention.TONE_LOUD_BEEP);
         }
 
-        if (markerSize > 18) {
-            markerSize = 18;
+        if (!(Attention has :vibrate) || !(Attention has :VibeProfile)) {
+            return;
         }
 
-        var groupWidth = markerSize + PRIMARY_MARKER_GAP + textWidth;
-        var markerX = centerX - (groupWidth / 2);
-        var markerY = y + ((fontHeight - markerSize) / 2);
-        var textX = markerX + markerSize + PRIMARY_MARKER_GAP;
+        Attention.vibrate([
+            new Attention.VibeProfile(80, 120),
+            new Attention.VibeProfile(0, 60),
+            new Attention.VibeProfile(100, 140)
+        ]);
+    }
 
-        dc.setColor(markerColor, markerColor);
-        if (isPaused) {
-            drawPausedPrimaryIcon(dc, markerX, markerY, markerSize);
+    private function triggerPausePaceCue() as Void {
+        if (!(Attention has :vibrate) || !(Attention has :VibeProfile)) {
+            return;
+        }
+
+        Attention.vibrate([
+            new Attention.VibeProfile(60, 140)
+        ]);
+    }
+
+    private function updateTheme() as Void {
+        _backgroundColor = getBackgroundColor();
+
+        if (isLightBackground(_backgroundColor)) {
+            _primaryTextColor = Graphics.COLOR_BLACK;
+            _secondaryTextColor = LIGHT_SECONDARY_TEXT_COLOR;
+            _progressTrackColor = LIGHT_PROGRESS_TRACK_COLOR;
         } else {
-            drawMovingPrimaryIcon(dc, markerX, markerY, markerSize);
-        }
-
-        dc.setColor(_primaryTextColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(textX, y, font, text, Graphics.TEXT_JUSTIFY_LEFT);
-    }
-
-    private function drawMovingPrimaryIcon(dc as Dc, x as Number, y as Number, size as Number) as Void {
-        var triangleWidth = size;
-        var triangleHeight = size;
-        var column = 0;
-
-        while (column < triangleWidth) {
-            var progress = column.toFloat() / triangleWidth.toFloat();
-            var startY = y + ((triangleHeight * progress) / 2);
-            var drawHeight = triangleHeight - (triangleHeight * progress);
-
-            if (drawHeight < 1) {
-                drawHeight = 1;
-            }
-
-            dc.fillRectangle(x + column, startY, 1, drawHeight);
-            column += 1;
+            _primaryTextColor = Graphics.COLOR_WHITE;
+            _secondaryTextColor = DARK_SECONDARY_TEXT_COLOR;
+            _progressTrackColor = DARK_PROGRESS_TRACK_COLOR;
         }
     }
 
-    private function drawPausedPrimaryIcon(dc as Dc, x as Number, y as Number, size as Number) as Void {
-        var barWidth = size / 4;
-        var gap = size / 4;
-        var barHeight = size;
-
-        if (barWidth < 2) {
-            barWidth = 2;
-        }
-
-        if (gap < 2) {
-            gap = 2;
-        }
-
-        var totalWidth = (2 * barWidth) + gap;
-        var startX = x + ((size - totalWidth) / 2);
-
-        dc.fillRectangle(startX, y, barWidth, barHeight);
-        dc.fillRectangle(startX + barWidth + gap, y, barWidth, barHeight);
-    }
-
-    private function drawSecondaryMetric(dc as Dc, centerX as Number, y as Number, font as Graphics.FontType, text as String) as Void {
-        var fontHeight = Graphics.getFontHeight(font);
-        var textWidth = dc.getTextWidthInPixels(text, font);
-        var groupWidth = SECONDARY_ICON_SIZE + SECONDARY_ICON_GAP + textWidth;
-        var iconX = centerX - (groupWidth / 2);
-        var iconY = y + ((fontHeight - SECONDARY_ICON_SIZE) / 2);
-        var textX = iconX + SECONDARY_ICON_SIZE + SECONDARY_ICON_GAP;
-
-        dc.setColor(_secondaryTextColor, _secondaryTextColor);
-        drawPreviousIcon(dc, iconX, iconY, SECONDARY_ICON_SIZE);
-
-        dc.setColor(_secondaryTextColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(textX, y, font, text, Graphics.TEXT_JUSTIFY_LEFT);
-    }
-
-    private function drawPreviousIcon(dc as Dc, x as Number, y as Number, size as Number) as Void {
-        var column = 0;
-
-        while (column < size) {
-            var progress = column.toFloat() / size.toFloat();
-            var startY = y + ((size * progress) / 2);
-            var drawHeight = size - (size * progress);
-
-            if (drawHeight < 1) {
-                drawHeight = 1;
-            }
-
-            dc.fillRectangle(x + (size - 1 - column), startY, 1, drawHeight);
-            column += 1;
-        }
-    }
-
-    private function getPausedPrimaryText() as String {
-        if (_recoveryTargetMs <= 0) {
-            return MovePauseFormatter.formatDuration(_engine.getCurrentPauseMs());
-        }
-
-        if (isPausedOvertime()) {
-            return MovePauseFormatter.formatOvertime(_engine.getCurrentPauseMs() - _recoveryTargetMs);
-        }
-
-        return MovePauseFormatter.formatCountdown(_engine.getRemainingRecoveryMs(_recoveryTargetMs));
-    }
-
-    private function isPausedOvertime() as Boolean {
-        return (_recoveryTargetMs > 0) && _engine.isRecoveryTargetReached(_recoveryTargetMs);
-    }
-
-    private function getPausedProgressRatio() as Float {
-        if (_recoveryTargetMs <= 0) {
-            return 0.0;
-        }
-
-        if (isPausedOvertime()) {
-            return 1.0;
-        }
-
-        return _engine.getRemainingRecoveryMs(_recoveryTargetMs).toFloat() / _recoveryTargetMs.toFloat();
-    }
-
-    private function getMovingProgressRatio() as Float {
+    private function getMoveProgressRatio() as Float {
         if (!_engine.hasPreviousMove()) {
             return 0.0;
         }
@@ -385,29 +235,78 @@ class MovePauseField extends WatchUi.DataField {
         return _engine.getCurrentMoveMs().toFloat() / previousMoveMs.toFloat();
     }
 
-    private function isMovingPastReference() as Boolean {
-        return _engine.hasPreviousMove() && (_engine.getCurrentMoveMs() >= _engine.getPreviousMoveMs());
-    }
-
-    private function getSampleBandWidth(totalWidth as Number, totalHeight as Number, zoneTop as Number, zoneHeight as Number, sampleHeight as Number, padding as Number) as Number {
-        if (zoneHeight < sampleHeight) {
-            sampleHeight = zoneHeight;
+    private function getPauseProgressRatio() as Float {
+        if (!_engine.hasPreviousPause()) {
+            return 0.0;
         }
 
-        if (sampleHeight < 20) {
-            sampleHeight = 20;
+        var previousPauseMs = _engine.getPreviousPauseMs();
+        if (previousPauseMs <= 0) {
+            return 0.0;
         }
 
-        var y = zoneTop + ((zoneHeight - sampleHeight) / 2);
-        return getSafeBandRect(totalWidth, totalHeight, y, sampleHeight, padding)[1];
+        return _engine.getCurrentPauseMs().toFloat() / previousPauseMs.toFloat();
     }
 
-    private function pickMetricFont(dc as Dc, text as String, maxWidth as Number, fonts as Array<Graphics.FontType>) as Graphics.FontType {
+    private function getContentFrame(dc as Dc) as Array<Number> {
+        var width = dc.getWidth();
+        var height = dc.getHeight();
+        var obscurityFlags = DataField.getObscurityFlags();
+        var leftPadding = clampNumber(width / 24, 0, 10) + BASE_HORIZONTAL_PADDING;
+        var rightPadding = clampNumber(width / 24, 0, 10) + BASE_HORIZONTAL_PADDING;
+        var topPadding = clampNumber(height / 18, 0, 8) + BASE_VERTICAL_PADDING;
+        var bottomPadding = clampNumber(height / 18, 0, 8) + BASE_VERTICAL_PADDING;
+
+        if ((obscurityFlags & OBSCURE_LEFT) != 0) {
+            leftPadding += clampNumber(width / 18, 2, 10);
+        }
+
+        if ((obscurityFlags & OBSCURE_RIGHT) != 0) {
+            rightPadding += clampNumber(width / 18, 2, 10);
+        }
+
+        if ((obscurityFlags & OBSCURE_TOP) != 0) {
+            topPadding += clampNumber(height / 18, 2, 8);
+        }
+
+        if ((obscurityFlags & OBSCURE_BOTTOM) != 0) {
+            bottomPadding += clampNumber(height / 18, 2, 8);
+        }
+
+        var contentWidth = width - leftPadding - rightPadding;
+        var contentHeight = height - topPadding - bottomPadding;
+
+        if (contentWidth < 20) {
+            contentWidth = 20;
+            leftPadding = (width - contentWidth) / 2;
+        }
+
+        if (contentHeight < 16) {
+            contentHeight = 16;
+            topPadding = (height - contentHeight) / 2;
+        }
+
+        return [leftPadding, topPadding, contentWidth, contentHeight];
+    }
+
+    private function getProgressBarHeight(contentHeight as Number) as Number {
+        return clampNumber(contentHeight / 16, 2, 4);
+    }
+
+    private function getSecondaryHeightBudget(contentHeight as Number) as Number {
+        return clampNumber(contentHeight / 6, 8, 16);
+    }
+
+    private function getSectionGap(contentHeight as Number) as Number {
+        return clampNumber(contentHeight / 18, 2, 6);
+    }
+
+    private function pickMetricFont(dc as Dc, text as String, maxWidth as Number, maxHeight as Number, fonts as Array<Graphics.FontType>) as Graphics.FontType {
         var index = 0;
 
         while (index < fonts.size()) {
             var font = fonts[index];
-            if (dc.getTextWidthInPixels(text, font) <= maxWidth) {
+            if ((dc.getTextWidthInPixels(text, font) <= maxWidth) && (Graphics.getFontHeight(font) <= maxHeight)) {
                 return font;
             }
             index += 1;
@@ -416,10 +315,14 @@ class MovePauseField extends WatchUi.DataField {
         return fonts[fonts.size() - 1];
     }
 
+    private function isLightBackground(color as Number) as Boolean {
+        return (color == Graphics.COLOR_WHITE) || (color == Graphics.COLOR_LT_GRAY);
+    }
+
     private function clampRatio(value as Float or Number) as Float {
         var ratio = value.toFloat();
 
-        if (ratio < 0) {
+        if (ratio < 0.0) {
             return 0.0;
         }
 
@@ -430,42 +333,16 @@ class MovePauseField extends WatchUi.DataField {
         return ratio;
     }
 
-    private function getSafeBandRect(totalWidth as Number, totalHeight as Number, yTop as Number, bandHeight as Number, padding as Number) as Array<Number> {
-        var inset = getSafeBandInset(totalWidth, totalHeight, yTop, bandHeight) + padding;
-        var safeWidth = totalWidth - (2 * inset);
-
-        if (safeWidth < 40) {
-            safeWidth = 40;
-            inset = (totalWidth - safeWidth) / 2;
+    private function clampNumber(value as Number, minimum as Number, maximum as Number) as Number {
+        if (value < minimum) {
+            return minimum;
         }
 
-        return [inset, safeWidth];
-    }
-
-    private function getSafeBandInset(totalWidth as Number, totalHeight as Number, yTop as Number, bandHeight as Number) as Number {
-        var insetTop = getEllipseInsetAtY(totalWidth, totalHeight, yTop);
-        var insetMid = getEllipseInsetAtY(totalWidth, totalHeight, yTop + (bandHeight / 2));
-        var insetBottom = getEllipseInsetAtY(totalWidth, totalHeight, yTop + bandHeight);
-        return maxNumber(maxNumber(insetTop, insetMid), insetBottom) + ROUND_SAFE_MARGIN;
-    }
-
-    private function getEllipseInsetAtY(totalWidth as Number, totalHeight as Number, y as Number) as Number {
-        var radiusX = totalWidth / 2;
-        var radiusY = totalHeight / 2;
-        var centerY = radiusY;
-        var dy = y - centerY;
-
-        if (dy < 0) {
-            dy = 0 - dy;
+        if (value > maximum) {
+            return maximum;
         }
 
-        if (dy >= radiusY) {
-            return radiusX;
-        }
-
-        var widthSquared = (radiusX * radiusX * ((radiusY * radiusY) - (dy * dy))) / (radiusY * radiusY);
-        var halfWidth = integerSqrt(widthSquared);
-        return radiusX - halfWidth;
+        return value;
     }
 
     private function maxNumber(left as Number, right as Number) as Number {
@@ -474,33 +351,5 @@ class MovePauseField extends WatchUi.DataField {
         }
 
         return right;
-    }
-
-    private function integerSqrt(value as Number) as Number {
-        if (value <= 0) {
-            return 0;
-        }
-
-        var low = 0;
-        var high = value;
-        var result = 0;
-
-        while (low <= high) {
-            var mid = (low + high) / 2;
-            var square = mid * mid;
-
-            if (square == value) {
-                return mid;
-            }
-
-            if (square < value) {
-                result = mid;
-                low = mid + 1;
-            } else {
-                high = mid - 1;
-            }
-        }
-
-        return result;
     }
 }
