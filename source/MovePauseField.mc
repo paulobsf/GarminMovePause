@@ -5,8 +5,8 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 class MovePauseField extends WatchUi.DataField {
-    private const BASE_HORIZONTAL_PADDING = 6;
-    private const BASE_VERTICAL_PADDING = 4;
+    private const BASE_HORIZONTAL_PADDING = 2;
+    private const BASE_VERTICAL_PADDING = 0;
     private const DARK_PROGRESS_TRACK_COLOR = 0x27302C;
     private const DARK_SECONDARY_TEXT_COLOR = 0xA8B4AD;
     private const LIGHT_PROGRESS_TRACK_COLOR = 0xD7DCD8;
@@ -113,7 +113,6 @@ class MovePauseField extends WatchUi.DataField {
         var contentHeight = frame[3];
         var secondaryVisible = _engine.hasPreviousMove();
         var secondaryText = secondaryVisible ? MovePauseFormatter.formatDuration(_engine.getPreviousMoveMs()) : "";
-        var gap = (secondaryVisible || progressVisible) ? getSectionGap(contentHeight) : 0;
         var progressHeight = progressVisible ? getProgressBarHeight(contentHeight) : 0;
         var secondaryFont = Graphics.FONT_XTINY;
         var secondaryHeight = 0;
@@ -125,12 +124,12 @@ class MovePauseField extends WatchUi.DataField {
             secondaryFont = pickMetricFont(dc, secondaryText, contentWidth, getSecondaryHeightBudget(contentHeight), [Graphics.FONT_MEDIUM, Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY]);
             secondaryHeight = Graphics.getFontHeight(secondaryFont);
             secondaryY = availableBottom - secondaryHeight;
-            availableBottom = secondaryY - (progressVisible ? gap : 0);
+            availableBottom = secondaryY;
         }
 
         if (progressVisible) {
             progressY = availableBottom - progressHeight;
-            availableBottom = progressY - gap;
+            availableBottom = progressY;
         }
 
         var primaryZoneHeight = availableBottom - contentTop;
@@ -252,25 +251,25 @@ class MovePauseField extends WatchUi.DataField {
         var width = dc.getWidth();
         var height = dc.getHeight();
         var obscurityFlags = DataField.getObscurityFlags();
-        var leftPadding = clampNumber(width / 24, 0, 10) + BASE_HORIZONTAL_PADDING;
-        var rightPadding = clampNumber(width / 24, 0, 10) + BASE_HORIZONTAL_PADDING;
-        var topPadding = clampNumber(height / 18, 0, 8) + BASE_VERTICAL_PADDING;
-        var bottomPadding = clampNumber(height / 18, 0, 8) + BASE_VERTICAL_PADDING;
+        var leftPadding = clampNumber(width / 60, 0, 3) + BASE_HORIZONTAL_PADDING;
+        var rightPadding = clampNumber(width / 60, 0, 3) + BASE_HORIZONTAL_PADDING;
+        var topPadding = clampNumber(height / 60, 0, 1) + BASE_VERTICAL_PADDING;
+        var bottomPadding = clampNumber(height / 60, 0, 1) + BASE_VERTICAL_PADDING;
 
         if ((obscurityFlags & OBSCURE_LEFT) != 0) {
-            leftPadding += clampNumber(width / 18, 2, 10);
+            leftPadding += clampNumber(width / 28, 1, 6);
         }
 
         if ((obscurityFlags & OBSCURE_RIGHT) != 0) {
-            rightPadding += clampNumber(width / 18, 2, 10);
+            rightPadding += clampNumber(width / 28, 1, 6);
         }
 
         if ((obscurityFlags & OBSCURE_TOP) != 0) {
-            topPadding += clampNumber(height / 18, 2, 8);
+            topPadding += clampNumber(height / 28, 1, 4);
         }
 
         if ((obscurityFlags & OBSCURE_BOTTOM) != 0) {
-            bottomPadding += clampNumber(height / 18, 2, 8);
+            bottomPadding += clampNumber(height / 28, 1, 4);
         }
 
         var contentWidth = width - leftPadding - rightPadding;
@@ -290,15 +289,11 @@ class MovePauseField extends WatchUi.DataField {
     }
 
     private function getProgressBarHeight(contentHeight as Number) as Number {
-        return clampNumber(contentHeight / 16, 2, 4);
+        return clampNumber(contentHeight / 36, 1, 2);
     }
 
     private function getSecondaryHeightBudget(contentHeight as Number) as Number {
-        return clampNumber(contentHeight / 6, 8, 16);
-    }
-
-    private function getSectionGap(contentHeight as Number) as Number {
-        return clampNumber(contentHeight / 18, 2, 6);
+        return clampNumber(contentHeight / 6, 8, 14);
     }
 
     private function pickMetricFont(dc as Dc, text as String, maxWidth as Number, maxHeight as Number, fonts as Array<Graphics.FontType>) as Graphics.FontType {
