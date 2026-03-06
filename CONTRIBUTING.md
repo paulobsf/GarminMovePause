@@ -2,7 +2,7 @@
 
 ## Project Stage
 
-MovePause has completed its initial public foundation pass, but implementation has not started yet. The first Connect IQ project scaffold has not been committed yet.
+MovePause is now in active early implementation. The first Connect IQ project scaffold and phase-1 timing logic are committed, but simulator verification and real-watch validation are still ongoing.
 
 Useful contributions at this stage include:
 
@@ -53,6 +53,6 @@ Try to keep unrelated documentation, scope, and implementation changes in separa
 
 ## Evolving Implementation Conventions
 
-The first code scaffold is not committed yet, so implementation conventions may still evolve once the project moves from planning into active development.
+The first code scaffold is now committed, but implementation conventions may still evolve while the early phases are validated on real hardware.
 
-If you want to contribute early code, prefer discussing the change first so file layout, naming, and tooling assumptions do not drift before the initial scaffold is in place.
+If you want to contribute code at this stage, prefer discussing the change first so file layout, naming, and tooling assumptions do not drift while phase 1 is still settling.

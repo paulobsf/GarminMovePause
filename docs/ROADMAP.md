@@ -6,7 +6,7 @@ It is intentionally narrow. The aim is to solve one clear problem well before ex
 
 This roadmap is directional rather than fixed. It may change as simulator and device testing reveal platform constraints, device-specific behaviour, or better ways to keep v1 focused.
 
-The initial repository foundation is already in place. The active roadmap now begins with implementation.
+The initial repository foundation is already in place. The repository now also contains an initial phase-1 Data Field scaffold and timing engine, so the remaining phase-1 work is validation and iteration rather than starting from zero.
 
 ## Guiding Principles
 

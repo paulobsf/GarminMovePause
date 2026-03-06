@@ -2,7 +2,7 @@
 
 ## 1. What This Document Is
 
-This document records the current technical direction for MovePause v1. Implementation has not started yet, so references to APIs, project structure, and workflows describe planned work rather than current repository state.
+This document records the current technical direction for MovePause v1. An initial phase-1 implementation is now in the repository, but the design notes still describe the intended shape of the broader v1 rather than claiming every planned piece is already complete.
 
 ## 2. Product Shape and Rationale
 
@@ -185,14 +185,15 @@ The planned implementation order is:
 
 The repository currently contains:
 
+* a Connect IQ Data Field scaffold for `epix2pro47mm`
+* phase-1 timing logic for total moving and paused accumulation
+* resources, manifest, and jungle files for the app project
 * public documentation describing the project and its direction
-* a license file
 * contribution guidance and issue templates
-* no Connect IQ project scaffold yet
 
-### Planned Scaffold After Initial Implementation Begins
+### Expected Expansion During Later Phases
 
-Once code exists, a first scaffold will likely look broadly like this:
+The project will likely expand from the initial scaffold into something broadly like this:
 
 ```text
 MovePause/
