@@ -4,14 +4,17 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 class MovePauseField extends WatchUi.DataField {
+    private const LAYOUT_FULL = 2;
+    private const LAYOUT_SEGMENT_WITH_TOTAL_PAUSE = 1;
+    private const LAYOUT_SEGMENT_ONLY = 0;
     private const LINE_SPACING = 4;
 
     private var _compact as Boolean = false;
     private var _engine as MovePauseTimingEngine;
-    private var _moveY as Number = 0;
-    private var _pauseY as Number = 0;
+    private var _layoutMode as Number = LAYOUT_SEGMENT_ONLY;
     private var _stateFont as Graphics.FontType = Graphics.FONT_TINY;
     private var _stateY as Number = 0;
+    private var _valueYs as Array<Number> = [];
     private var _valueFont as Graphics.FontType = Graphics.FONT_SMALL;
 
     function initialize() {
@@ -26,29 +29,19 @@ class MovePauseField extends WatchUi.DataField {
 
         _compact = (height < 96) || (width < 120);
 
-        if (height < 72) {
-            _stateFont = Graphics.FONT_XTINY;
-            _valueFont = Graphics.FONT_TINY;
-        } else if (_compact) {
-            _stateFont = Graphics.FONT_TINY;
-            _valueFont = Graphics.FONT_SMALL;
+        if (canFit(height, Graphics.FONT_TINY, Graphics.FONT_SMALL, 4) && (width >= 130)) {
+            configureLayout(height, LAYOUT_FULL, Graphics.FONT_TINY, Graphics.FONT_SMALL, 4);
+        } else if (canFit(height, Graphics.FONT_XTINY, Graphics.FONT_TINY, 4) && (width >= 110)) {
+            configureLayout(height, LAYOUT_FULL, Graphics.FONT_XTINY, Graphics.FONT_TINY, 4);
+        } else if (canFit(height, Graphics.FONT_XTINY, Graphics.FONT_TINY, 3)) {
+            configureLayout(height, LAYOUT_SEGMENT_WITH_TOTAL_PAUSE, Graphics.FONT_XTINY, Graphics.FONT_TINY, 3);
         } else {
-            _stateFont = Graphics.FONT_SMALL;
-            _valueFont = Graphics.FONT_MEDIUM;
+            configureLayout(height, LAYOUT_SEGMENT_ONLY, Graphics.FONT_XTINY, Graphics.FONT_TINY, 2);
         }
+    }
 
-        var stateHeight = Graphics.getFontHeight(_stateFont);
-        var valueHeight = Graphics.getFontHeight(_valueFont);
-        var blockHeight = stateHeight + (2 * valueHeight) + (2 * LINE_SPACING);
-        var top = (height - blockHeight) / 2;
-
-        if (top < 0) {
-            top = 0;
-        }
-
-        _stateY = top;
-        _moveY = _stateY + stateHeight + LINE_SPACING;
-        _pauseY = _moveY + valueHeight + LINE_SPACING;
+    function onTimerLap() as Void {
+        _engine.handleTimerLap();
     }
 
     function onTimerPause() as Void {
@@ -89,11 +82,59 @@ class MovePauseField extends WatchUi.DataField {
 
         var centerX = dc.getWidth() / 2;
         var stateText = MovePauseFormatter.formatStateLabel(_engine.hasStarted(), _engine.isMoving(), _engine.isPaused());
-        var movingText = (_compact ? "M " : "Move ") + MovePauseFormatter.formatDuration(_engine.getTotalMovingMs());
-        var pausedText = (_compact ? "P " : "Pause ") + MovePauseFormatter.formatDuration(_engine.getTotalPausedMs());
+        var segmentMovingText = (_compact ? "SM " : "Seg M ") + MovePauseFormatter.formatDuration(_engine.getSegmentMovingMs());
+        var segmentPausedText = (_compact ? "SP " : "Seg P ") + MovePauseFormatter.formatDuration(_engine.getSegmentPausedMs());
+        var valueLines = [segmentMovingText, segmentPausedText];
 
         dc.drawText(centerX, _stateY, _stateFont, stateText, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, _moveY, _valueFont, movingText, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(centerX, _pauseY, _valueFont, pausedText, Graphics.TEXT_JUSTIFY_CENTER);
+
+        if (_layoutMode == LAYOUT_FULL) {
+            valueLines.add((_compact ? "TM " : "Tot M ") + MovePauseFormatter.formatDuration(_engine.getTotalMovingMs()));
+            valueLines.add((_compact ? "TP " : "Tot P ") + MovePauseFormatter.formatDuration(_engine.getTotalPausedMs()));
+        } else if (_layoutMode == LAYOUT_SEGMENT_WITH_TOTAL_PAUSE) {
+            valueLines.add((_compact ? "TP " : "Tot P ") + MovePauseFormatter.formatDuration(_engine.getTotalPausedMs()));
+        }
+
+        var lineCount = valueLines.size();
+        var index = 0;
+        while (index < lineCount) {
+            dc.drawText(centerX, _valueYs[index], _valueFont, valueLines[index], Graphics.TEXT_JUSTIFY_CENTER);
+            index += 1;
+        }
+    }
+
+    private function canFit(height as Number, stateFont as Graphics.FontType, valueFont as Graphics.FontType, valueLineCount as Number) as Boolean {
+        var stateHeight = Graphics.getFontHeight(stateFont);
+        var valueHeight = Graphics.getFontHeight(valueFont);
+        var blockHeight = stateHeight + (valueLineCount * valueHeight) + (valueLineCount * LINE_SPACING);
+
+        return blockHeight <= height;
+    }
+
+    private function configureLayout(height as Number, layoutMode as Number, stateFont as Graphics.FontType, valueFont as Graphics.FontType, valueLineCount as Number) as Void {
+        _layoutMode = layoutMode;
+        _stateFont = stateFont;
+        _valueFont = valueFont;
+
+        var stateHeight = Graphics.getFontHeight(_stateFont);
+        var valueHeight = Graphics.getFontHeight(_valueFont);
+        var blockHeight = stateHeight + (valueLineCount * valueHeight) + (valueLineCount * LINE_SPACING);
+        var top = (height - blockHeight) / 2;
+
+        if (top < 0) {
+            top = 0;
+        }
+
+        _stateY = top;
+        _valueYs = [];
+
+        var nextY = _stateY + stateHeight + LINE_SPACING;
+        var index = 0;
+        while (index < valueLineCount) {
+            _valueYs.add(nextY);
+            nextY += valueHeight + LINE_SPACING;
+            index += 1;
+        }
+
     }
 }

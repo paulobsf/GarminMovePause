@@ -8,6 +8,8 @@ class MovePauseTimingEngine {
     private var _currentPauseMs as Number = 0;
     private var _hasStarted as Boolean = false;
     private var _lastTickMs as Number?;
+    private var _segmentMovingMs as Number = 0;
+    private var _segmentPausedMs as Number = 0;
     private var _timerState as Number = Activity.TIMER_STATE_OFF;
     private var _totalMovingMs as Number = 0;
     private var _totalPausedMs as Number = 0;
@@ -20,6 +22,8 @@ class MovePauseTimingEngine {
         _currentPauseMs = 0;
         _hasStarted = false;
         _lastTickMs = null;
+        _segmentMovingMs = 0;
+        _segmentPausedMs = 0;
         _timerState = Activity.TIMER_STATE_OFF;
         _totalMovingMs = 0;
         _totalPausedMs = 0;
@@ -39,10 +43,14 @@ class MovePauseTimingEngine {
 
         _totalMovingMs = expectedMoving;
         _totalPausedMs = expectedPaused;
+        _segmentMovingMs = expectedMoving;
+        _segmentPausedMs = expectedPaused;
         _timerState = getObservedState(info);
         _hasStarted = didActivityStart(info, expectedMoving, expectedPaused);
 
         if (!_hasStarted) {
+            _segmentMovingMs = 0;
+            _segmentPausedMs = 0;
             _timerState = Activity.TIMER_STATE_OFF;
             _currentPauseMs = 0;
         } else if (!isPausedLike(_timerState)) {
@@ -68,6 +76,19 @@ class MovePauseTimingEngine {
         handleTimerEvent(Activity.TIMER_STATE_PAUSED, "onTimerPause");
     }
 
+    function handleTimerLap() as Void {
+        var now = System.getTimer();
+
+        if (_lastTickMs == null) {
+            _lastTickMs = now;
+        }
+
+        accumulateDelta(now);
+        _lastTickMs = now;
+        resetSegmentTotals();
+        MovePauseLogger.debug("Segment reset via onTimerLap.");
+    }
+
     function handleTimerReset() as Void {
         reset();
     }
@@ -86,6 +107,14 @@ class MovePauseTimingEngine {
 
     function getCurrentPauseMs() as Number {
         return _currentPauseMs;
+    }
+
+    function getSegmentMovingMs() as Number {
+        return _segmentMovingMs;
+    }
+
+    function getSegmentPausedMs() as Number {
+        return _segmentPausedMs;
     }
 
     function getTotalMovingMs() as Number {
@@ -138,12 +167,14 @@ class MovePauseTimingEngine {
 
         if (_timerState == Activity.TIMER_STATE_ON) {
             _hasStarted = true;
+            _segmentMovingMs += delta;
             _totalMovingMs += delta;
             _currentPauseMs = 0;
             return;
         }
 
         if (_hasStarted && isPausedLike(_timerState)) {
+            _segmentPausedMs += delta;
             _totalPausedMs += delta;
             _currentPauseMs += delta;
             return;
@@ -235,12 +266,16 @@ class MovePauseTimingEngine {
         }
 
         if (numberDistance(_totalMovingMs, expectedMoving) > DRIFT_CORRECTION_THRESHOLD_MS) {
+            var movingCorrection = expectedMoving - _totalMovingMs;
             _totalMovingMs = expectedMoving;
+            _segmentMovingMs = correctedSegmentValue(_segmentMovingMs, movingCorrection);
             MovePauseLogger.debug("Corrected moving total from Activity.Info.");
         }
 
         if (numberDistance(_totalPausedMs, expectedPaused) > DRIFT_CORRECTION_THRESHOLD_MS) {
+            var pausedCorrection = expectedPaused - _totalPausedMs;
             _totalPausedMs = expectedPaused;
+            _segmentPausedMs = correctedSegmentValue(_segmentPausedMs, pausedCorrection);
             MovePauseLogger.debug("Corrected paused total from Activity.Info.");
         }
 
@@ -255,5 +290,20 @@ class MovePauseTimingEngine {
         }
 
         return right - left;
+    }
+
+    private function correctedSegmentValue(segmentValue as Number, correction as Number) as Number {
+        var correctedValue = segmentValue + correction;
+
+        if (correctedValue < 0) {
+            return 0;
+        }
+
+        return correctedValue;
+    }
+
+    private function resetSegmentTotals() as Void {
+        _segmentMovingMs = 0;
+        _segmentPausedMs = 0;
     }
 }

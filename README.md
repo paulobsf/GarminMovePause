@@ -4,7 +4,7 @@ MovePause is a planned Garmin Connect IQ data field for showing moving time, pau
 
 ## Status
 
-MovePause now has an initial Connect IQ data field scaffold and a phase-1 timing implementation. Simulator verification and real-watch validation are still needed before phase 1 can be considered complete.
+MovePause now has a validated phase-1 timing implementation and an initial phase-2 segment-tracking implementation. Phase 1 has been verified in the simulator and on an Epix Pro (Gen 2, 47mm); the new lap-based segment behaviour still needs the same level of validation.
 
 ## Problem It Solves
 

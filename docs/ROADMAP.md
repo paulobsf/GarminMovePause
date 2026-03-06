@@ -6,7 +6,7 @@ It is intentionally narrow. The aim is to solve one clear problem well before ex
 
 This roadmap is directional rather than fixed. It may change as simulator and device testing reveal platform constraints, device-specific behaviour, or better ways to keep v1 focused.
 
-The initial repository foundation is already in place. The repository now also contains an initial phase-1 Data Field scaffold and timing engine, so the remaining phase-1 work is validation and iteration rather than starting from zero.
+The initial repository foundation is already in place. Phase 1 has now been validated in the simulator and on an Epix Pro (Gen 2, 47mm). The repository also contains an initial phase-2 segment-tracking implementation, so the active work has moved on to validating lap-based segment behaviour and then improving the UI.
 
 ## Guiding Principles
 

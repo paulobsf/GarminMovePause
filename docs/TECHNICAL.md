@@ -2,7 +2,7 @@
 
 ## 1. What This Document Is
 
-This document records the current technical direction for MovePause v1. An initial phase-1 implementation is now in the repository, but the design notes still describe the intended shape of the broader v1 rather than claiming every planned piece is already complete.
+This document records the current technical direction for MovePause v1. The repository now contains a validated phase-1 implementation and an initial phase-2 implementation, but the design notes still describe the intended shape of the broader v1 rather than claiming every planned piece is already complete.
 
 ## 2. Product Shape and Rationale
 
@@ -186,7 +186,8 @@ The planned implementation order is:
 The repository currently contains:
 
 * a Connect IQ Data Field scaffold for `epix2pro47mm`
-* phase-1 timing logic for total moving and paused accumulation
+* validated phase-1 timing logic for total moving and paused accumulation
+* initial phase-2 segment moving and paused counters with lap-based resets
 * resources, manifest, and jungle files for the app project
 * public documentation describing the project and its direction
 * contribution guidance and issue templates
@@ -215,7 +216,7 @@ That structure is planned, not current.
 These questions remain open and should be resolved through a mix of implementation, simulator work, and real device testing:
 
 * which Garmin devices should be supported first
-* whether v1 segment resets should depend only on manual laps
+* whether segment resets should later expand beyond manual laps
 * whether very short pauses should count by default
 * whether the moving view should emphasise segment totals or run totals
 * whether the paused view should show elapsed time only, or elapsed plus remaining time by default
