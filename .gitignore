@@ -20,7 +20,11 @@ out/
 
 *.iq
 *.prg
+*.prg.debug.xml
 *.barrel
+gen/
+internal-mir/
+mir/
 
 # Logs
 
