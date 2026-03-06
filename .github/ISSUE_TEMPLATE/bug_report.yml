@@ -46,8 +46,8 @@ body:
     id: activity_settings
     attributes:
       label: Relevant activity settings
-      description: Include lap, timer, screen, or other settings that may matter.
-      placeholder: Manual lap enabled, 1-second recording, default run profile
+      description: Include timer, Auto Pause, screen, or other settings that may matter.
+      placeholder: Auto Pause enabled, 1-second recording, default run profile
     validations:
       required: false
 

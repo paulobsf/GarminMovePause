@@ -27,7 +27,7 @@ body:
     attributes:
       label: Proposed change
       description: Describe the change you want and why it improves the product.
-      placeholder: Show current pause duration in the largest field and move total paused time to a smaller row.
+      placeholder: Show the current move in the main field, keep the previous move as a reference below, and make the recovery bar easier to read.
     validations:
       required: true
 

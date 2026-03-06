@@ -1,10 +1,10 @@
 # MovePause for Garmin
 
-MovePause is a planned Garmin Connect IQ data field for showing moving time, paused time, and recovery timing during normal runs.
+MovePause is a Garmin Connect IQ data field for improvised interval-style runs where you want to track moving time, paused time, and recovery pacing without pre-building a workout.
 
 ## Status
 
-MovePause now has a validated phase-1 timing implementation and an initial phase-2 lap-tracking implementation. Phase 1 has been verified in the simulator and on an Epix Pro (Gen 2, 47mm); the new lap behaviour still needs the same level of validation.
+MovePause is in active early implementation. Core timer-state handling has been validated in the simulator and on an Epix Pro (Gen 2, 47mm), and the current UI/recovery-target direction is being iterated in real use.
 
 ## Problem It Solves
 
@@ -18,10 +18,10 @@ Garmin handles structured workouts well, but many runners do not pre-program eve
 
 During those sessions, Garmin's standard running experience does not provide a simple, general-purpose way to see:
 
+* how long the current move has lasted
 * how long the current pause has lasted
-* how much paused time has accumulated in the current lap
-* how much paused time has accumulated across the full run
-* how much of the current lap has actually been spent moving
+* how long the previous move lasted
+* whether the current pause is on track against a simple recovery target
 
 MovePause is intended to make those distinctions glanceable without requiring a pre-built workout.
 
@@ -31,9 +31,11 @@ The current v1 plan is intentionally narrow:
 
 * a Data Field app type inside Garmin's standard Run activity
 * Garmin timer state as the source of truth for moving versus paused time
-* run-level moving and paused totals
-* current-lap moving and paused totals
-* a pause-focused view that makes recovery timing obvious while stopped
+* an alternating move/pause model rather than lap-based workout logic
+* current moving duration as the main moving-state metric
+* current pause duration or remaining recovery time as the main paused-state metric
+* previous moving duration as the reference shown in both moving and paused states
+* progress cues that compare the current move or pause against the relevant reference
 * an optional recovery target with a vibration alert
 * a small initial device list rather than broad watch support on day one
 
@@ -45,6 +47,8 @@ MovePause is not currently planned to:
 * ship first as a full custom activity app
 * infer training quality or workout load
 * detect intervals automatically with custom motion logic
+* treat laps as the core product model
+* show a broad set of run totals in the field UI
 * support every Garmin watch from the outset
 * add cloud sync or external analytics integrations
 
@@ -60,7 +64,7 @@ This repository now contains the early Connect IQ implementation alongside the d
 
 Useful contributions right now include:
 
-* device-specific observations about Garmin timer, Auto Pause, and lap behaviour
+* device-specific observations about Garmin timer and Auto Pause behaviour
 * feedback on scope and UX tradeoffs
 * documentation fixes and clarity improvements
 * implementation suggestions that keep v1 narrow and testable
