@@ -9,9 +9,14 @@ class MovePauseField extends WatchUi.DataField {
     private const BASE_VERTICAL_PADDING = 0;
     private const DARK_PROGRESS_TRACK_COLOR = 0x27302C;
     private const DARK_SECONDARY_TEXT_COLOR = 0xA8B4AD;
-    private const LIGHT_PROGRESS_TRACK_COLOR = 0xD7DCD8;
+    private const GAUGE_MAX_SEGMENTS = 20;
+    private const GAUGE_MIN_SEGMENTS = 8;
+    private const GAUGE_SEGMENT_GAP = 1;
+    private const GAUGE_TARGET_SEGMENTS = 18;
+    private const GAUGE_MIN_SEGMENT_WIDTH = 2;
     private const LIGHT_SECONDARY_TEXT_COLOR = 0x5B625E;
     private const MOVING_COLOR = 0x4EDB79;
+    private const OVERRUN_COLOR = 0xD94B45;
     private const PAUSE_PACE_INTERVAL_MS = 30000;
     private const PAUSED_COLOR = 0xF5A13B;
 
@@ -86,88 +91,96 @@ class MovePauseField extends WatchUi.DataField {
     }
 
     private function drawMovingLayout(dc as Dc) as Void {
-        drawMetricLayout(
+        var referenceText = _engine.hasPreviousMove() ? MovePauseFormatter.formatDuration(_engine.getPreviousMoveMs()) : "";
+
+        drawStackedLayout(
             dc,
             MovePauseFormatter.formatDuration(_engine.getCurrentMoveMs()),
             MOVING_COLOR,
-            getMoveProgressRatio(),
-            _engine.hasPreviousMove()
+            referenceText,
+            _secondaryTextColor,
+            MOVING_COLOR,
+            true,
+            getMoveProgressRatio()
         );
     }
 
     private function drawPausedLayout(dc as Dc) as Void {
-        drawMetricLayout(
+        var referenceText = _engine.hasPreviousMove() ? MovePauseFormatter.formatDuration(_engine.getPreviousMoveMs()) : "";
+
+        drawStackedLayout(
             dc,
+            referenceText,
+            _secondaryTextColor,
             MovePauseFormatter.formatDuration(_engine.getCurrentPauseMs()),
             PAUSED_COLOR,
-            getPauseProgressRatio(),
-            _engine.hasPreviousPause()
+            PAUSED_COLOR,
+            false,
+            getPauseProgressRatio()
         );
     }
 
-    private function drawMetricLayout(dc as Dc, primaryText as String, primaryColor as Number, progressRatio as Float, progressVisible as Boolean) as Void {
+    private function drawStackedLayout(dc as Dc, topText as String, topColor as Number, bottomText as String, bottomColor as Number, gaugeFillColor as Number, activeOnTop as Boolean, progressRatio as Float) as Void {
         var frame = getContentFrame(dc);
         var contentLeft = frame[0];
         var contentTop = frame[1];
         var contentWidth = frame[2];
         var contentHeight = frame[3];
-        var secondaryVisible = _engine.hasPreviousMove();
-        var secondaryText = secondaryVisible ? MovePauseFormatter.formatDuration(_engine.getPreviousMoveMs()) : "";
-        var progressHeight = progressVisible ? getProgressBarHeight(contentHeight) : 0;
-        var secondaryFont = Graphics.FONT_XTINY;
-        var secondaryHeight = 0;
-        var secondaryY = 0;
-        var progressY = 0;
-        var availableBottom = contentTop + contentHeight;
+        var gaugeHeight = getGaugeHeight(contentHeight);
+        var gaugeGap = getGaugeGap(contentHeight);
+        var timerZoneHeight = contentHeight - gaugeHeight - (gaugeGap * 2);
 
-        if (secondaryVisible) {
-            secondaryFont = pickMetricFont(dc, secondaryText, contentWidth, getSecondaryHeightBudget(contentHeight), [Graphics.FONT_MEDIUM, Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY]);
-            secondaryHeight = Graphics.getFontHeight(secondaryFont);
-            secondaryY = availableBottom - secondaryHeight;
-            availableBottom = secondaryY;
+        if (timerZoneHeight <= 0) {
+            timerZoneHeight = contentHeight - gaugeHeight;
+            gaugeGap = 0;
         }
 
-        if (progressVisible) {
-            progressY = availableBottom - progressHeight;
-            availableBottom = progressY;
-        }
+        var activeZoneHeight = getActiveTimerZoneHeight(timerZoneHeight);
+        var referenceZoneHeight = timerZoneHeight - activeZoneHeight;
+        var topZoneHeight = activeOnTop ? activeZoneHeight : referenceZoneHeight;
+        var bottomZoneHeight = timerZoneHeight - topZoneHeight;
+        var gaugeY = contentTop + topZoneHeight + gaugeGap;
+        var bottomZoneTop = gaugeY + gaugeHeight + gaugeGap;
 
-        var primaryZoneHeight = availableBottom - contentTop;
-        var primaryFont = pickMetricFont(dc, primaryText, contentWidth, primaryZoneHeight, [Graphics.FONT_NUMBER_HOT, Graphics.FONT_NUMBER_MEDIUM, Graphics.FONT_LARGE, Graphics.FONT_MEDIUM, Graphics.FONT_SMALL, Graphics.FONT_TINY]);
-        var primaryHeight = Graphics.getFontHeight(primaryFont);
-        var primaryY = contentTop + maxNumber((primaryZoneHeight - primaryHeight) / 2, 0);
-
-        dc.setColor(primaryColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(contentLeft + (contentWidth / 2), primaryY, primaryFont, primaryText, Graphics.TEXT_JUSTIFY_CENTER);
-
-        if (progressVisible) {
-            drawProgressBar(dc, contentLeft, progressY, contentWidth, progressHeight, progressRatio, _progressTrackColor, primaryColor);
-        }
-
-        if (secondaryVisible) {
-            dc.setColor(_secondaryTextColor, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(contentLeft + (contentWidth / 2), secondaryY, secondaryFont, secondaryText, Graphics.TEXT_JUSTIFY_CENTER);
-        }
+        drawTimerText(dc, contentLeft, contentTop, contentWidth, topZoneHeight, topText, topColor);
+        drawSegmentedGauge(dc, contentLeft, gaugeY, contentWidth, gaugeHeight, progressRatio, gaugeFillColor);
+        drawTimerText(dc, contentLeft, bottomZoneTop, contentWidth, bottomZoneHeight, bottomText, bottomColor);
     }
 
-    private function drawProgressBar(dc as Dc, x as Number, y as Number, width as Number, height as Number, progressRatio as Float or Number, trackColor as Number, fillColor as Number) as Void {
-        var clampedRatio = clampRatio(progressRatio);
-        var radius = maxNumber(height / 2, 1);
-
-        dc.setColor(trackColor, trackColor);
-        dc.fillRoundedRectangle(x, y, width, height, radius);
-
-        if (clampedRatio <= 0.0) {
+    private function drawTimerText(dc as Dc, x as Number, y as Number, width as Number, height as Number, text as String, color as Number) as Void {
+        if ((text == "") || (height <= 0)) {
             return;
         }
 
-        var fillWidth = width * clampedRatio;
-        if (fillWidth > width) {
-            fillWidth = width;
-        }
+        var font = pickMetricFont(dc, text, width, height, [Graphics.FONT_NUMBER_MEDIUM, Graphics.FONT_LARGE, Graphics.FONT_MEDIUM, Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY]);
+        var textY = y + maxNumber((height - Graphics.getFontHeight(font)) / 2, 0);
 
-        dc.setColor(fillColor, fillColor);
-        dc.fillRoundedRectangle(x, y, fillWidth, height, radius);
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x + (width / 2), textY, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    private function drawSegmentedGauge(dc as Dc, x as Number, y as Number, width as Number, height as Number, progressRatio as Float or Number, fillColor as Number) as Void {
+        var segmentCount = getGaugeSegmentCount(width);
+        var segmentWidth = maxNumber((width - ((segmentCount - 1) * GAUGE_SEGMENT_GAP)) / segmentCount, GAUGE_MIN_SEGMENT_WIDTH);
+        var usedWidth = (segmentWidth * segmentCount) + ((segmentCount - 1) * GAUGE_SEGMENT_GAP);
+        var startX = x + maxNumber((width - usedWidth) / 2, 0);
+        var clampedRatio = clampRatio(progressRatio);
+        var fillBoundary = clampedRatio * segmentCount.toFloat();
+        var activeColor = (progressRatio.toFloat() >= 1.0) ? OVERRUN_COLOR : fillColor;
+        var index = 0;
+
+        while (index < segmentCount) {
+            var segmentX = startX + (index * (segmentWidth + GAUGE_SEGMENT_GAP));
+            var segmentColor = _progressTrackColor;
+
+            if (index.toFloat() < fillBoundary) {
+                segmentColor = activeColor;
+            }
+
+            dc.setColor(segmentColor, segmentColor);
+            dc.fillRectangle(segmentX, y, segmentWidth, height);
+            index += 1;
+        }
     }
 
     private function triggerAlertsIfNeeded() as Void {
@@ -213,11 +226,9 @@ class MovePauseField extends WatchUi.DataField {
         if (isLightBackground(_backgroundColor)) {
             _primaryTextColor = Graphics.COLOR_BLACK;
             _secondaryTextColor = LIGHT_SECONDARY_TEXT_COLOR;
-            _progressTrackColor = LIGHT_PROGRESS_TRACK_COLOR;
         } else {
             _primaryTextColor = Graphics.COLOR_WHITE;
             _secondaryTextColor = DARK_SECONDARY_TEXT_COLOR;
-            _progressTrackColor = DARK_PROGRESS_TRACK_COLOR;
         }
     }
 
@@ -275,9 +286,10 @@ class MovePauseField extends WatchUi.DataField {
         var contentWidth = width - leftPadding - rightPadding;
         var contentHeight = height - topPadding - bottomPadding;
 
-        if (contentWidth < 20) {
-            contentWidth = 20;
-            leftPadding = (width - contentWidth) / 2;
+        var minimumGaugeWidth = (GAUGE_MIN_SEGMENTS * GAUGE_MIN_SEGMENT_WIDTH) + ((GAUGE_MIN_SEGMENTS - 1) * GAUGE_SEGMENT_GAP);
+        if (contentWidth < minimumGaugeWidth) {
+            contentWidth = minimumGaugeWidth;
+            leftPadding = maxNumber((width - contentWidth) / 2, 0);
         }
 
         if (contentHeight < 16) {
@@ -288,12 +300,46 @@ class MovePauseField extends WatchUi.DataField {
         return [leftPadding, topPadding, contentWidth, contentHeight];
     }
 
-    private function getProgressBarHeight(contentHeight as Number) as Number {
-        return clampNumber(contentHeight / 36, 1, 2);
+    private function getGaugeHeight(contentHeight as Number) as Number {
+        return clampNumber(contentHeight / 7, 4, 10);
     }
 
-    private function getSecondaryHeightBudget(contentHeight as Number) as Number {
-        return clampNumber(contentHeight / 6, 8, 14);
+    private function getGaugeGap(contentHeight as Number) as Number {
+        return clampNumber(contentHeight / 20, 0, 2);
+    }
+
+    private function getActiveTimerZoneHeight(timerZoneHeight as Number) as Number {
+        if (timerZoneHeight <= 0) {
+            return 0;
+        }
+
+        if (timerZoneHeight < 14) {
+            return (timerZoneHeight + 1) / 2;
+        }
+
+        return clampNumber((timerZoneHeight * 6) / 11, 7, timerZoneHeight - 6);
+    }
+
+    private function getGaugeSegmentCount(width as Number) as Number {
+        if (canFitGaugeSegments(width, GAUGE_TARGET_SEGMENTS)) {
+            return GAUGE_TARGET_SEGMENTS;
+        }
+
+        var count = GAUGE_MAX_SEGMENTS;
+
+        while (count >= GAUGE_MIN_SEGMENTS) {
+            if (canFitGaugeSegments(width, count)) {
+                return count;
+            }
+
+            count -= 1;
+        }
+
+        return GAUGE_MIN_SEGMENTS;
+    }
+
+    private function canFitGaugeSegments(width as Number, count as Number) as Boolean {
+        return (width - ((count - 1) * GAUGE_SEGMENT_GAP)) >= (count * GAUGE_MIN_SEGMENT_WIDTH);
     }
 
     private function pickMetricFont(dc as Dc, text as String, maxWidth as Number, maxHeight as Number, fonts as Array<Graphics.FontType>) as Graphics.FontType {

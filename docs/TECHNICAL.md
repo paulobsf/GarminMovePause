@@ -86,20 +86,24 @@ Lap events may still exist in the host activity, but they are not part of the ex
 
 The moving state should prioritise work-oriented information:
 
-* current moving duration in the largest treatment
-* previous moving duration as the secondary metric
-* a progress bar that compares the current move against the previous move
+* current moving duration at the top in green
+* a segmented gauge in the middle that compares the current move against the previous move
+* previous moving duration below in grey
 
-The first move of the session has no previous reference, so no comparison bar should be shown.
+The first move of the session has no previous reference, so the gauge should remain visible as an unfilled dark-grey scaffold.
 
 ### While Paused
 
 The paused state should prioritise recovery-oriented information:
 
-* current pause duration in the largest treatment
-* previous moving duration as the secondary metric
-* a progress bar that fills against the previous pause once that reference exists
+* the just-completed move duration at the top in grey
+* a segmented gauge in the middle that fills against the previous pause once that reference exists
+* current pause duration below in amber
 * a 30-second vibration cue even on the first pause
+
+When the timer moves from running to paused, the active green timer should demote into the top grey slot, the gauge should reset, and a new amber pause timer should start from zero at the bottom.
+
+In either state, once the gauge reaches the reference, the filled segments should switch to red to make the overrun obvious without changing the gauge width.
 
 ### Design Principles
 
@@ -109,7 +113,7 @@ The planned UI should be:
 * low in cognitive load
 * conservative about how much it tries to display at once
 * compatible with tighter multi-field layouts
-* able to simplify gracefully across screen shapes and sizes without mode-specific hardcoding
+* able to simplify gracefully across screen shapes and sizes without device-specific hardcoding
 
 ## 8. Platform and API Areas Likely Involved
 

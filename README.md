@@ -34,9 +34,10 @@ The current v1 plan is intentionally narrow:
 * an alternating move/pause model rather than lap-based workout logic
 * current moving duration as the main moving-state metric
 * current pause duration as the main paused-state metric
+* asymmetric layouts where the active move timer sits above the gauge, then demotes to the top grey reference when you pause
 * previous moving duration as the reference shown in both moving and paused states
 * previous pause duration as the paused-state comparison reference
-* progress cues that compare the current move or pause against the relevant reference
+* a segmented progress gauge that stays visible as a scaffold, compares the current move or pause against the relevant reference, and turns red on overrun
 * 30-second pause haptics and previous-period completion alerts
 * no settings surface; behaviour is learned from the session itself
 * a small initial device list rather than broad watch support on day one
