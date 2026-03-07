@@ -6,14 +6,14 @@ It is intentionally narrow. The aim is to solve one clear problem well before ex
 
 This roadmap is directional rather than fixed. It may change as simulator and device testing reveal platform constraints, device-specific behaviour, or better ways to keep v1 focused.
 
-The initial repository foundation is already in place. Core timer-state handling has been validated in the simulator and on an Epix Pro (Gen 2, 47mm). The active work now is validating the period-based UI, self-learned pacing cues, and alert behaviour in real use.
+The initial repository foundation is already in place. Core timer-state handling has been validated in the simulator and on an Epix Pro (Gen 2, 47mm), the supported device set has been chosen, and `v0.1` has been submitted to Garmin for approval. The active work now is validating the rep and recovery UI on those devices and handling any review follow-up cleanly.
 
 ## Guiding Principles
 
 * start with the smallest useful version
-* optimise for clarity and trustworthiness over feature count
+* optimise for clarity, rhythm, and trustworthiness over feature count
 * prefer Garmin-native semantics over clever inference
-* support a small set of devices first
+* keep supported-device claims aligned with the shipped manifest
 * use real-world running sessions to validate behaviour early
 
 ## Phase 1: Core Timing Engine
@@ -44,24 +44,24 @@ This phase should not try to solve UI polish or broad device support.
 
 ### Objective
 
-Support rep-like usage by modelling the run as alternating move and pause periods.
+Support freeform reps and recoveries by modelling the run as alternating move and pause periods.
 
 ### Deliverables
 
 * current move duration
-* current pause duration
+* current recovery duration
 * previous move duration captured on every move-to-pause transition
 * lap events explicitly ignored in the displayed model
 * repeated pause and resume cycles handled correctly
 
 ### Notes
 
-The displayed semantics should stay simple: the field answers "how long has this move lasted?", "how long has this pause lasted?", and "how long was the last move?"
+The displayed semantics should stay simple: the field answers "how long has this rep lasted?", "how long has this recovery lasted?", and "how long was the last running rep?"
 
 ### Exit Criteria
 
 * runners can use the field for improvised intervals or hill reps without confusion
-* previous-move references remain trustworthy across repeated move/pause cycles
+* previous-running references remain trustworthy across repeated move/pause cycles
 
 ## Phase 3: Usable UI
 
@@ -75,18 +75,18 @@ Make the field genuinely useful at a glance during a real run.
 * paused-state layout
 * ready-state layout
 * hierarchy for key metrics
-* initial support for a small device subset
+* support for the chosen release device set
 * typography and spacing refined for quick readability
 
 ### Notes
 
-Prioritise the paused state. That is where the runner most needs help.
+Prioritise the paused state. That is where the runner most needs help deciding when to go again.
 
 ### Exit Criteria
 
 * while paused, the runner can instantly see how long recovery has lasted
-* while moving, the runner can compare the current move against the previous move without effort
-* layouts remain legible on the chosen launch devices
+* while moving, the runner can compare the current rep against the previous rep without effort
+* layouts remain legible on the supported release devices
 
 ## Phase 4: Self-Learned Pacing
 
@@ -101,10 +101,11 @@ Support practical standing recoveries without requiring a pre-set target.
 * vibration every 30 seconds while paused
 * beep/vibrate when move or pause reference reaches 100%
 * no settings screen
+* no preset recovery timer
 
 ### Notes
 
-Prefer behaviour learned from the session over configuration.
+Prefer session-learned references over configuration.
 
 ### Exit Criteria
 
@@ -133,32 +134,31 @@ This phase matters more than adding new features.
 
 * the field feels trustworthy during repeated real use
 * the main edge cases are understood and documented
-* launch scope is evidence-based rather than aspirational
+* release scope is evidence-based rather than aspirational
 
-## Phase 6: Beta Release
+## Phase 6: Store Submission
 
 ### Objective
 
-Get the app into the hands of early testers.
+Submit the first public build and supporting materials for Garmin review.
 
 ### Deliverables
 
-* installation instructions
+* release build package
 * screenshots
-* known limitations
 * supported-device list
-* beta release notes
-* feedback template for testers
+* submitted store copy
+* submitted store assets
+* first release notes
 
 ### Notes
 
-A narrow, honest beta is better than broad support claimed too early.
+An honest first submission is better than a broader release story than the product can support.
 
 ### Exit Criteria
 
-* external testers can install and use the app
-* feedback arrives in a structured way
-* launch blockers are distinguishable from nice-to-have ideas
+* Garmin review has a coherent, truthful first submission to evaluate
+* follow-up work is distinguishable from nice-to-have ideas
 
 ## Phase 7: v1 Release
 
@@ -169,14 +169,14 @@ Ship a stable first release that clearly solves the core problem.
 ### Deliverables
 
 * first stable public release
-* polished store or distribution metadata
+* polished store metadata and review answers
 * release notes
 * issue triage process
 * short post-v1 roadmap
 
 ### Exit Criteria
 
-* MovePause solves ad hoc move-versus-pause timing for a defined set of runners and devices
+* MovePause provides lightweight pacing and rep or recovery context for a defined set of runners and devices
 * the project has a stable baseline for future improvements
 
 ## Post-v1 Directions
@@ -234,7 +234,8 @@ A strong early outcome would look like this:
 * current recovery duration is obvious while paused
 * move and pause periods feel trustworthy
 * previous-move comparison is useful for improvised reps
-* early testers describe the field as simple and useful rather than clever and fiddly
+* the paused view helps the runner know when it is time to go again
+* runners describe the field as simple and useful rather than clever and fiddly
 
 ## Suggested Issue Buckets
 
@@ -246,7 +247,7 @@ To keep the roadmap actionable, issues can be grouped under:
 * pacing and alerts
 * device compatibility
 * documentation
-* beta feedback
+* review follow-up
 
 ## Suggested Release Rhythm
 
@@ -256,7 +257,7 @@ A sensible cadence would be:
 * period model
 * maintainer prototype
 * maintainer field testing
-* small beta
+* store submission
 * v1
 
 That keeps the project grounded in real usage rather than abstract completeness.

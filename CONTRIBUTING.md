@@ -2,12 +2,12 @@
 
 ## Project Stage
 
-MovePause is now in active early implementation. The Connect IQ project scaffold and core timer-state handling are committed, and the current work is focused on validating the move/pause period model, recovery targets, and compact UI in real use.
+MovePause `v0.1` has been submitted to Garmin for approval. The Connect IQ project scaffold, core timer-state handling, and current pacing UI are in place, and the current work is focused on validation on the chosen devices plus any follow-up changes that come out of review or real use.
 
 Useful contributions at this stage include:
 
 * device-specific observations about Garmin timer behaviour
-* feedback on scope, UX priorities, and launch-device choices
+* feedback on scope, UX priorities, and behaviour on supported devices
 * documentation improvements
 * small implementation ideas that help keep v1 narrow and testable
 
